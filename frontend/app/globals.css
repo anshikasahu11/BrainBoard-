@@ -294,3 +294,17 @@ html {
     scroll-behavior: auto !important;
   }
 }
+/* ---------- Landing: logo and scrim ---------- */
+
+.logo-orb {
+  width: 20px;
+  height: 20px;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 35% 30%, #ffc4a4, #ef6a45 55%, #842000);
+  box-shadow: 0 0 0 1.5px rgb(150 170 190 / 0.6);
+}
+
+.scrim {
+  background: radial-gradient(ellipse at 40% 55%, rgb(9 8 12 / 0.6), rgb(9 8 12 / 0) 68%);
+  filter: blur(20px);
+}
