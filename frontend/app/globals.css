@@ -195,3 +195,102 @@ html {
   mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
 }
+
+/* ---------- Motion tokens ---------- */
+
+:root {
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 180ms;
+  --dur-base: 350ms;
+  --dur-slow: 700ms;
+  --drift: 1;
+}
+
+/* Motion level. Set data-motion on a page wrapper to change how much moves. */
+[data-motion="subtle"] {
+  --drift: 0.5;
+}
+[data-motion="balanced"] {
+  --drift: 1;
+}
+[data-motion="expressive"] {
+  --drift: 1.5;
+}
+
+/* ---------- Ambient ribbon drift ----------
+   Uses the separate `translate` property, so each ribbon keeps its own rotation. */
+
+@keyframes drift-a {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: calc(var(--drift) * 3vw) calc(var(--drift) * 1.6vw);
+  }
+}
+
+@keyframes drift-b {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: calc(var(--drift) * -2.6vw) calc(var(--drift) * -1.2vw);
+  }
+}
+
+@keyframes drift-c {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: calc(var(--drift) * 2vw) calc(var(--drift) * -1vw);
+  }
+}
+
+.ribbon-key {
+  animation: drift-a 32s ease-in-out infinite;
+}
+.ribbon-teal {
+  animation: drift-b 40s ease-in-out infinite;
+}
+.ribbon-heat {
+  animation: drift-c 46s ease-in-out infinite;
+}
+
+/* ---------- Button feedback ---------- */
+
+.btn-primary,
+.btn-ghost {
+  transition:
+    transform var(--dur-base) var(--ease-out),
+    filter var(--dur-base) var(--ease-out),
+    background var(--dur-base) var(--ease-out);
+}
+.btn-primary:hover,
+.btn-ghost:hover {
+  transform: translateY(-1px);
+}
+.btn-primary:active,
+.btn-ghost:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* ---------- Respect "reduce motion" ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .ribbon {
+    animation: none;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
