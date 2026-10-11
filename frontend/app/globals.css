@@ -1,0 +1,197 @@
+@import "tailwindcss";
+
+/* Font families. The CSS variables are set by next/font in layout.js */
+@theme inline {
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-display: var(--font-instrument-serif), Georgia, serif;
+}
+
+/* BrainBoard design tokens: Ember Ink, ribbon edition */
+@theme {
+  /* Surfaces */
+  --color-void: #09080c;
+  --color-canvas: #0d0a0b;
+  --color-sidebar: #110d0f;
+  --color-card: #1a1214;
+  --color-raised: #231819;
+  --color-overlay: #2c1f20;
+  --color-scorched: #240500;
+  --color-code: #0c111a;
+
+  /* Text */
+  --color-fg: #f4ede8;
+  --color-fg-2: #b8aaa3;
+  --color-fg-muted: #918480;
+  --color-on-ember: #1a0804;
+
+  /* Ember (primary) */
+  --color-ember-300: #ff9a78;
+  --color-ember-400: #f77b58;
+  --color-ember-500: #ef6a45;
+  --color-ember-600: #df4d2e;
+  --color-ember-700: #c43433;
+  --color-ember-800: #842000;
+
+  /* Petrol (cool counter-light, code, in-progress) */
+  --color-petrol-300: #6fc7d0;
+  --color-petrol-500: #2a8c99;
+  --color-petrol-600: #2a7f8e;
+  --color-petrol-900: #0f3a4c;
+
+  /* Supporting */
+  --color-gold: #e3bc6c;
+  --color-sage: #7fa38c;
+  --color-amber: #fedd81;
+  --color-copper: #d18341;
+  --color-success: #3fb6a8;
+  --color-danger: #ff7a78;
+
+  /* Borders */
+  --color-line: rgb(255 235 225 / 0.08);
+  --color-line-strong: rgb(255 235 225 / 0.14);
+
+  /* Radius */
+  --radius-chip: 6px;
+  --radius-control: 10px;
+  --radius-card: 16px;
+  --radius-panel: 24px;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html {
+  background: var(--color-void);
+}
+
+::selection {
+  background: rgb(239 106 69 / 0.35);
+}
+
+/* ---------- Reusable pieces ---------- */
+
+.text-glow {
+  text-shadow: 0 2px 28px rgb(9 8 12 / 0.55);
+}
+
+.btn-primary {
+  background: linear-gradient(180deg, #f4744f, #e5573a);
+  color: var(--color-on-ember);
+  font-weight: 500;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.22);
+  transition: filter 0.15s ease;
+}
+.btn-primary:hover {
+  filter: brightness(1.08);
+}
+.btn-primary:active {
+  filter: brightness(0.95);
+}
+
+.btn-ghost {
+  background: rgb(255 255 255 / 0.07);
+  border: 0.5px solid rgb(255 235 225 / 0.2);
+  backdrop-filter: blur(10px);
+  color: var(--color-fg);
+  transition: background 0.15s ease;
+}
+.btn-ghost:hover {
+  background: rgb(255 255 255 / 0.12);
+}
+
+.glass {
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgb(255 170 110 / 0.1), transparent 55%),
+    linear-gradient(145deg, rgb(255 255 255 / 0.06), rgb(255 255 255 / 0.01) 60%),
+    rgb(14 10 13 / 0.55);
+  backdrop-filter: blur(18px);
+  border: 0.5px solid rgb(255 235 225 / 0.11);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07);
+}
+
+/* ---------- Ambient ribbon lighting ---------- */
+
+.ambient {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  overflow: hidden;
+  pointer-events: none;
+  isolation: isolate;
+  background: var(--color-void);
+}
+
+.ribbon {
+  position: absolute;
+  border-radius: 9999px;
+  mix-blend-mode: screen;
+}
+
+.ribbon-key {
+  left: -20vw;
+  top: -12vw;
+  width: 90vw;
+  height: 24vw;
+  transform: rotate(16deg);
+  background: linear-gradient(
+    90deg,
+    rgb(90 20 8 / 0) 0%,
+    #7a1f08 10%,
+    #e8782a 26%,
+    #f7a94a 42%,
+    #d9bc6c 56%,
+    #7fa38c 70%,
+    #2a7f8e 84%,
+    rgb(20 70 90 / 0) 100%
+  );
+  filter: blur(70px);
+  opacity: 0.78;
+}
+
+.ribbon-teal {
+  right: -25vw;
+  top: 25vh;
+  width: 70vw;
+  height: 24vw;
+  transform: rotate(-32deg);
+  background: linear-gradient(
+    90deg,
+    rgb(11 20 36 / 0),
+    #0f3a4c 22%,
+    #2a8c99 50%,
+    #1e5f73 75%,
+    rgb(11 20 36 / 0)
+  );
+  filter: blur(90px);
+  opacity: 0.55;
+}
+
+.ribbon-heat {
+  left: -20vw;
+  bottom: -18vh;
+  width: 110vw;
+  height: 30vw;
+  transform: rotate(-6deg);
+  background: linear-gradient(
+    90deg,
+    rgb(90 20 8 / 0) 0%,
+    #8a2410 14%,
+    #df4d2e 34%,
+    #f7a94a 54%,
+    #e3c474 68%,
+    rgb(78 154 146 / 0.7) 84%,
+    rgb(42 127 142 / 0) 100%
+  );
+  filter: blur(90px);
+  opacity: 0.7;
+}
+
+.grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.09;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
