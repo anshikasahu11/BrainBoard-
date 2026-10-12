@@ -4,7 +4,7 @@ import Orb from "@/components/Orb";
 
 export default function Hero() {
   return (
-    <section className="relative mx-auto grid max-w-6xl items-center gap-10 px-6 pb-28 pt-20 md:grid-cols-[1.25fr_1fr] md:pt-28 lg:pt-36">
+        <section className="relative mx-auto grid max-w-6xl items-center gap-10 px-6 pb-16 pt-20 md:grid-cols-[1.25fr_1fr] md:pt-28 lg:pt-36">
       {/* Left column: text */}
       <div className="relative">
         {/* Soft dark scrim keeps text readable where the light is brightest */}
