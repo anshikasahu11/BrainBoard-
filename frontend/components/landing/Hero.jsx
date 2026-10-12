@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Reveal from "@/components/Reveal";
+import Orb from "@/components/Orb";
 
 export default function Hero() {
   return (
@@ -54,7 +55,12 @@ export default function Hero() {
       </div>
 
       {/* Right column: reserved for the AI orb (Step 2) */}
-      <div className="hidden min-h-64 md:block" aria-hidden="true" />
+            {/* Right column: the AI orb */}
+      <div className="flex items-center justify-center md:justify-end md:pr-6">
+        <Reveal level="expressive" delay={0.9}>
+          <Orb />
+        </Reveal>
+      </div>
     </section>
   );
 }
