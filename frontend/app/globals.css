@@ -733,3 +733,54 @@ html {
 .btn-light:active {
   transform: translateY(0) scale(0.98);
 }
+/* ---------- Accessibility and mobile ---------- */
+
+/* Clear focus ring for keyboard users (petrol stays visible on orange and dark) */
+:focus-visible {
+  outline: 2px solid var(--color-petrol-300);
+  outline-offset: 3px;
+}
+
+/* The skip link focuses <main>, which doesn't need a visible ring */
+main:focus {
+  outline: none;
+}
+
+/* "Skip to content": hidden until it receives keyboard focus */
+.skip-link {
+  position: absolute;
+  left: 16px;
+  top: -64px;
+  z-index: 100;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: var(--color-fg);
+  color: var(--color-on-ember);
+  font-size: 13px;
+  font-weight: 500;
+  transition: top var(--dur-fast) var(--ease-out);
+}
+.skip-link:focus {
+  top: 12px;
+}
+
+/* Wide decorative layers must never cause sideways scrolling on phones.
+   "clip" (unlike "hidden") does not break the sticky navigation. */
+body {
+  overflow-x: clip;
+}
+
+/* Mobile menu entrance */
+.menu-panel {
+  animation: menu-in 0.22s var(--ease-out) both;
+}
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

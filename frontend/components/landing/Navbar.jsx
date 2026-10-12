@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Logo from "@/components/Logo";
 import Reveal from "@/components/Reveal";
+import NavMenu from "@/components/landing/NavMenu";
 
 // Docs and Pricing are placeholders until those pages exist.
 const links = [
@@ -32,7 +33,7 @@ export default function Navbar() {
             ))}
           </ul>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <Link
               href="/login"
               className="hidden text-[13px] text-fg transition-colors hover:text-ember-300 sm:inline"
@@ -45,6 +46,7 @@ export default function Navbar() {
             >
               Get started
             </Link>
+            <NavMenu links={links} />
           </div>
         </nav>
       </Reveal>
