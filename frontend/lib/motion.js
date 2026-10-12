@@ -13,8 +13,9 @@ export const durations = {
 
 // How much each motion level moves things.
 // subtle: fade only. balanced: gentle rise. expressive: deeper, slower rise.
+// baseDelay holds expressive content back so the entrance sweep can clear first.
 export const levels = {
-  subtle: { distance: 0, duration: 0.5, delayScale: 0.4 },
-  balanced: { distance: 16, duration: 0.8, delayScale: 1 },
-  expressive: { distance: 32, duration: 1.2, delayScale: 1.4 },
+  subtle: { distance: 0, duration: 0.5, delayScale: 0.4, baseDelay: 0 },
+  balanced: { distance: 16, duration: 0.8, delayScale: 1, baseDelay: 0 },
+  expressive: { distance: 32, duration: 1.2, delayScale: 1.4, baseDelay: 0 },
 };

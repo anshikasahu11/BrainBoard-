@@ -428,3 +428,166 @@ html {
     transform: translateY(-3px);
   }
 }
+/* ---------- Board preview (landing) ---------- */
+
+.board-card {
+  display: flex;
+  height: 40px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 10px;
+  border-radius: 10px;
+  background: rgb(28 19 21 / 0.92);
+  border: 0.5px solid var(--color-line-strong);
+  font-size: 12px;
+  color: var(--color-fg);
+}
+
+/* The card that moves between columns. Positioned above neighbouring columns. */
+.board-mover {
+  position: relative;
+  z-index: 2;
+  border-color: rgb(239 106 69 / 0.5);
+  box-shadow: 0 0 22px rgb(239 106 69 / 0.18);
+  animation: board-move 6.5s ease-in-out 2.2s infinite;
+}
+
+/* One column step = card width + column padding (2 x 10px) + grid gap (12px).
+   One row step up  = card height (40px) + gap between cards (8px). */
+@keyframes board-move {
+  0%,
+  22% {
+    transform: translate(0, 0);
+    opacity: 1;
+    animation-timing-function: var(--ease-in-out);
+  }
+  42%,
+  80% {
+    transform: translate(calc(100% + 32px), -48px);
+    opacity: 1;
+  }
+  88% {
+    transform: translate(calc(100% + 32px), -48px);
+    opacity: 0;
+  }
+  89% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  100% {
+    transform: translate(0, 0);
+    opacity: 1;
+  }
+}
+
+/* Soft outline on the "In progress" column at the moment the card lands */
+.land-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow:
+    inset 0 0 0 1px rgb(239 106 69 / 0.5),
+    inset 0 0 32px rgb(239 106 69 / 0.14);
+  animation: board-land 6.5s ease-in-out 2.2s infinite;
+}
+
+@keyframes board-land {
+  0%,
+  38% {
+    opacity: 0;
+  }
+  46% {
+    opacity: 1;
+  }
+  72%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Presence dot with an expanding ring */
+.pdot {
+  position: relative;
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 9999px;
+  background: var(--color-ember-500);
+}
+.pdot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: var(--color-ember-500);
+  animation: presence-ping 1.8s ease-out infinite;
+}
+
+@keyframes presence-ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(2.8);
+    opacity: 0;
+  }
+}
+
+/* Smooth scrolling for in-page links like "View demo" */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+/* ---------- Expressive layer: parallax strength per motion level ---------- */
+
+[data-motion="subtle"] {
+  --parallax: 0;
+}
+[data-motion="balanced"] {
+  --parallax: 0.4;
+}
+[data-motion="expressive"] {
+  --parallax: 1;
+}
+
+/* Ribbons shift opposite to the cursor, so they feel far away.
+   The transform keeps each ribbon's own rotation. */
+.ribbon-key {
+  transform: translate(
+      calc(var(--mx, 0) * var(--parallax, 0) * -1.4vw),
+      calc(var(--my, 0) * var(--parallax, 0) * -1vw)
+    )
+    rotate(16deg);
+  transition: transform 0.9s var(--ease-out);
+}
+.ribbon-teal {
+  transform: translate(
+      calc(var(--mx, 0) * var(--parallax, 0) * -2.2vw),
+      calc(var(--my, 0) * var(--parallax, 0) * -1.4vw)
+    )
+    rotate(-32deg);
+  transition: transform 0.9s var(--ease-out);
+}
+.ribbon-heat {
+  transform: translate(
+      calc(var(--mx, 0) * var(--parallax, 0) * -1vw),
+      calc(var(--my, 0) * var(--parallax, 0) * -0.8vw)
+    )
+    rotate(-6deg);
+  transition: transform 0.9s var(--ease-out);
+}
+
+/* The orb drifts slightly toward the cursor, so it feels closer than the ribbons. */
+.orb {
+  transform: translate(
+    calc(var(--mx, 0) * var(--parallax, 0) * 14px),
+    calc(var(--my, 0) * var(--parallax, 0) * 10px)
+  );
+  transition: transform 0.9s var(--ease-out);
+}

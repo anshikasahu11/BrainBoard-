@@ -25,7 +25,7 @@ export default function Reveal({
       animate={{ opacity: 1, y: 0 }}
       transition={{
         duration: config.duration,
-        delay: delay * config.delayScale,
+                delay: (config.baseDelay ?? 0) + delay * config.delayScale,
         ease: ease.out,
       }}
     >
