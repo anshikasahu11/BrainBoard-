@@ -1,7 +1,7 @@
 // Decides where to send a user after login, based on the ?next= address.
 // Only paths on THIS site are allowed, which prevents "open redirect" attacks
 // like /login?next=https://evil.com or /login?next=//evil.com
-export function safeNext(value, fallback = "/dashboard") {
+export function safeNext(value, fallback = "/workspaces") {
   if (typeof value !== "string") return fallback;
 
   // Must start with a single "/" (not "//" and not "/\")

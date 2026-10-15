@@ -14,11 +14,11 @@ export default function NavAuth() {
 
   if (status === "authenticated") {
     return (
-      <Link
-        href="/dashboard"
+            <Link
+        href="/workspaces"
         className="btn-primary inline-flex items-center rounded-control px-4 py-2 text-[13px]"
       >
-        Dashboard
+        Open app
       </Link>
     );
   }

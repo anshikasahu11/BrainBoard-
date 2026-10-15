@@ -13,6 +13,7 @@ export default function TextField({
   onChange,
   error,
   hint,
+  placeholder,
   autoComplete,
   autoFocus = false,
   disabled = false,
@@ -36,6 +37,7 @@ export default function TextField({
           type={isPassword && visible ? "text" : type}
           value={value}
           onChange={onChange}
+          placeholder={placeholder}
           autoComplete={autoComplete}
           autoFocus={autoFocus}
           disabled={disabled}
