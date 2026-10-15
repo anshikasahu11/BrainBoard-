@@ -1,4 +1,5 @@
 import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
+import { AuthProvider } from "@/context/AuthContext";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -28,7 +29,9 @@ export default function RootLayout({ children }) {
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable}`}
     >
-      <body className="font-sans text-fg antialiased">{children}</body>
+      <body className="font-sans text-fg antialiased">
+        <AuthProvider>{children}</AuthProvider>
+      </body>
     </html>
   );
 }

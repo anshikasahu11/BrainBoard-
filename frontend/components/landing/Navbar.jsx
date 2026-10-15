@@ -2,6 +2,7 @@ import Link from "next/link";
 import Logo from "@/components/Logo";
 import Reveal from "@/components/Reveal";
 import NavMenu from "@/components/landing/NavMenu";
+import NavAuth from "@/components/landing/NavAuth";
 
 // Docs and Pricing are placeholders until those pages exist.
 const links = [
@@ -34,18 +35,7 @@ export default function Navbar() {
           </ul>
 
           <div className="flex items-center gap-3">
-            <Link
-              href="/login"
-              className="hidden text-[13px] text-fg transition-colors hover:text-ember-300 sm:inline"
-            >
-              Sign in
-            </Link>
-            <Link
-              href="/register"
-              className="btn-primary inline-flex items-center rounded-control px-4 py-2 text-[13px]"
-            >
-              Get started
-            </Link>
+            <NavAuth />
             <NavMenu links={links} />
           </div>
         </nav>
