@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import Reveal from "@/components/Reveal";
 import FormAlert from "@/components/auth/FormAlert";
 import WorkspaceCard from "@/components/workspaces/WorkspaceCard";
 import { listWorkspacesRequest } from "@/services/workspaceService";
+import { getLastWorkspace } from "@/lib/lastWorkspace";
 
 export default function WorkspaceList() {
   const [state, setState] = useState({ status: "loading", workspaces: [], error: "" });
@@ -68,15 +71,31 @@ export default function WorkspaceList() {
     );
   }
 
+  // Offer to jump back to the workspace you used last (only worth it with 2+).
+  const lastId = getLastWorkspace();
+  const last = state.workspaces.length > 1 ? state.workspaces.find((w) => w.id === lastId) : null;
+
   return (
-    <ul className="grid gap-4 sm:grid-cols-2">
-      {state.workspaces.map((workspace, index) => (
-        <li key={workspace.id}>
-          <Reveal level="balanced" delay={Math.min(index, 6) * 0.06} className="h-full">
-            <WorkspaceCard workspace={workspace} />
-          </Reveal>
-        </li>
-      ))}
-    </ul>
+    <div className="space-y-6">
+      {last && (
+        <Link
+          href={`/workspaces/${last.id}`}
+          className="btn-primary inline-flex max-w-full items-center gap-2 rounded-control px-5 py-2.5 text-sm"
+        >
+          <span className="truncate">Continue to {last.name}</span>
+          <ArrowRight size={15} strokeWidth={1.75} className="shrink-0" aria-hidden="true" />
+        </Link>
+      )}
+
+      <ul className="grid gap-4 sm:grid-cols-2">
+        {state.workspaces.map((workspace, index) => (
+          <li key={workspace.id}>
+            <Reveal level="balanced" delay={Math.min(index, 6) * 0.06} className="h-full">
+              <WorkspaceCard workspace={workspace} />
+            </Reveal>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
