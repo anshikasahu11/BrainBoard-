@@ -794,3 +794,64 @@ body {
   box-shadow: 0 0 32px rgb(239 106 69 / 0.45);
   animation: orb-breathe 2.4s ease-in-out infinite;
 }
+/* ---------- Auth forms ---------- */
+
+.input {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  border-radius: var(--radius-control);
+  background: rgb(35 24 25 / 0.7);
+  border: 0.5px solid var(--color-line-strong);
+  color: var(--color-fg);
+  font-size: 14px;
+  transition:
+    border-color var(--dur-base) var(--ease-out),
+    background var(--dur-base) var(--ease-out);
+}
+.input::placeholder {
+  color: var(--color-fg-muted);
+}
+.input:hover {
+  border-color: rgb(255 235 225 / 0.24);
+}
+.input:focus-visible {
+  outline: 2px solid var(--color-petrol-300);
+  outline-offset: 0;
+  border-color: transparent;
+}
+.input[aria-invalid="true"] {
+  border-color: rgb(255 122 120 / 0.7);
+}
+.input:disabled {
+  opacity: 0.6;
+}
+
+/* Stop the browser's pale autofill colours from clashing with the dark theme */
+.input:-webkit-autofill,
+.input:-webkit-autofill:hover,
+.input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--color-fg);
+  caret-color: var(--color-fg);
+  box-shadow: 0 0 0 1000px #231819 inset;
+}
+
+.form-alert {
+  display: flex;
+  gap: 10px;
+  padding: 11px 13px;
+  border-radius: var(--radius-control);
+  background: rgb(124 12 3 / 0.35);
+  border: 0.5px solid rgb(255 122 120 / 0.4);
+  color: #ffb4b2;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.btn-primary:disabled,
+.btn-primary:disabled:hover {
+  opacity: 0.65;
+  cursor: not-allowed;
+  filter: none;
+  transform: none;
+}
