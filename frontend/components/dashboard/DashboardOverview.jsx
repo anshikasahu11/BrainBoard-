@@ -1,0 +1,85 @@
+"use client";
+
+import { Users } from "lucide-react";
+import Reveal from "@/components/Reveal";
+import RoleBadge from "@/components/workspaces/RoleBadge";
+import QuickActions from "@/components/dashboard/QuickActions";
+import GettingStarted from "@/components/dashboard/GettingStarted";
+import StatsRow from "@/components/dashboard/StatsRow";
+import TeamCard from "@/components/dashboard/TeamCard";
+import {
+  AssignedCard,
+  RecentDocumentsCard,
+  RecentTasksCard,
+} from "@/components/dashboard/FutureCards";
+import useAuth from "@/hooks/useAuth";
+import useWorkspace from "@/hooks/useWorkspace";
+import { getGreeting } from "@/lib/greeting";
+import { formatDate } from "@/lib/format";
+
+export default function DashboardOverview() {
+  const { workspace } = useWorkspace();
+  const { user } = useAuth();
+
+  const firstName = user.name.split(" ")[0];
+  const members = `${workspace.memberCount} ${workspace.memberCount === 1 ? "member" : "members"}`;
+
+  return (
+    <div>
+      <Reveal level="balanced">
+        <p className="eyebrow mb-4">
+          <span className="size-1.5 shrink-0 rounded-full bg-ember-300" />
+          <span className="min-w-0 truncate">{workspace.name}</span>
+        </p>
+      </Reveal>
+
+      <Reveal level="balanced" delay={0.1}>
+        <h1 className="text-glow font-display text-5xl leading-[1.05] tracking-tight sm:text-6xl">
+          {getGreeting()}, {firstName}.
+        </h1>
+      </Reveal>
+
+      <Reveal level="balanced" delay={0.2}>
+        <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2">
+          <RoleBadge role={workspace.role} />
+          <span className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.08em] text-fg-2">
+            <Users size={13} strokeWidth={1.5} aria-hidden="true" />
+            {members}
+          </span>
+          <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-fg-muted">
+            Created {formatDate(workspace.createdAt)}
+          </span>
+        </div>
+      </Reveal>
+
+      <div className="mt-10 space-y-6">
+        <Reveal level="balanced" delay={0.3}>
+          <QuickActions />
+        </Reveal>
+
+        <Reveal level="balanced" delay={0.4}>
+          <GettingStarted />
+        </Reveal>
+
+        <Reveal level="balanced" inView>
+          <StatsRow />
+        </Reveal>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <Reveal level="balanced" inView className="h-full">
+            <AssignedCard />
+          </Reveal>
+          <Reveal level="balanced" inView delay={0.08} className="h-full">
+            <TeamCard />
+          </Reveal>
+          <Reveal level="balanced" inView className="h-full">
+            <RecentDocumentsCard />
+          </Reveal>
+          <Reveal level="balanced" inView delay={0.08} className="h-full">
+            <RecentTasksCard />
+          </Reveal>
+        </div>
+      </div>
+    </div>
+  );
+}
