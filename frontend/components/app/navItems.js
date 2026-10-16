@@ -4,7 +4,7 @@ import { LayoutDashboard, FileText, Kanban, Code, Users, Settings } from "lucide
 // soon: true shows the item dimmed and not clickable, until its page exists.
 export const NAV_ITEMS = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, path: "", group: "work" },
-  { key: "documents", label: "Documents", icon: FileText, group: "work", soon: true },
+  { key: "documents", label: "Documents", icon: FileText, path: "/documents", group: "work" },
   { key: "tasks", label: "Tasks", icon: Kanban, group: "work", soon: true },
   { key: "snippets", label: "Snippets", icon: Code, group: "work", soon: true },
   { key: "members", label: "Members", icon: Users, path: "/members", group: "manage" },

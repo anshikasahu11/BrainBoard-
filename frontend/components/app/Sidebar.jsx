@@ -47,7 +47,12 @@ export default function Sidebar({ onNavigate }) {
     }
 
     const href = `${base}${item.path ?? ""}`;
-    const active = pathname === href;
+
+    // A section stays highlighted on its nested pages (a single document keeps
+    // "Documents" lit). The dashboard has no nested pages, so it's exact only.
+    const active = item.path
+      ? pathname === href || pathname.startsWith(`${href}/`)
+      : pathname === href;
 
     return (
       <li key={item.key}>

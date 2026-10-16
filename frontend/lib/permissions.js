@@ -24,3 +24,9 @@ export function canRemoveMember(actorRole, targetRole) {
 export const canRename = (role) => role === "owner" || role === "admin";
 export const canDeleteWorkspace = (role) => role === "owner";
 export const canLeaveWorkspace = (role) => role !== "owner";
+
+// Owners and admins can delete any document. Members only their own.
+export function canDeleteDocument(role, doc, userId) {
+  if (role === "owner" || role === "admin") return true;
+  return doc.createdBy?.id === userId;
+}
