@@ -942,3 +942,57 @@ body {
     transform: none;
   }
 }
+/* ---------- Members, settings and dialogs ---------- */
+
+/* A compact input, used for dropdowns */
+.input-sm {
+  width: auto;
+  height: 36px;
+  padding: 0 10px;
+  font-size: 13px;
+}
+
+/* Destructive actions: deep oxblood fill, soft red text, never the bright primary */
+.btn-danger {
+  background: #7d0c03;
+  color: #ffb4b2;
+  font-weight: 500;
+  border: 0.5px solid rgb(255 122 120 / 0.45);
+  transition:
+    background var(--dur-base) var(--ease-out),
+    transform var(--dur-base) var(--ease-out);
+}
+.btn-danger:hover {
+  background: #9a1005;
+}
+.btn-danger:active {
+  background: #5e0902;
+  transform: scale(0.98);
+}
+.btn-danger:disabled,
+.btn-danger:disabled:hover {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #7d0c03;
+  transform: none;
+}
+
+.danger-card {
+  background: rgb(36 5 0 / 0.55);
+  border: 0.5px solid rgb(255 122 120 / 0.3);
+  backdrop-filter: blur(18px);
+}
+
+.dialog-panel {
+  animation: dialog-in 0.22s var(--ease-out) both;
+}
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
