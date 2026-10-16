@@ -12,6 +12,8 @@ export function errorHandler(err, req, res, next) {
     err = new AppError(409, "That value is already in use");
   } else if (err.type === "entity.parse.failed") {
     err = new AppError(400, "Request body is not valid JSON");
+  } else if (err.type === "entity.too.large") {
+    err = new AppError(413, "That is too large to save");
   } else if (err.name === "ValidationError") {
     err = new AppError(400, "Invalid data");
   }
