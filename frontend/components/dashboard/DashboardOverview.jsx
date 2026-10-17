@@ -2,17 +2,17 @@
 
 import { Users } from "lucide-react";
 import Reveal from "@/components/Reveal";
+import FormAlert from "@/components/auth/FormAlert";
 import RoleBadge from "@/components/workspaces/RoleBadge";
 import QuickActions from "@/components/dashboard/QuickActions";
 import GettingStarted from "@/components/dashboard/GettingStarted";
 import StatsRow from "@/components/dashboard/StatsRow";
 import TeamCard from "@/components/dashboard/TeamCard";
-import {
-  AssignedCard,
-  RecentDocumentsCard,
-  RecentTasksCard,
-} from "@/components/dashboard/FutureCards";
+import RecentDocumentsCard from "@/components/dashboard/RecentDocumentsCard";
+import { AssignedCard, RecentTasksCard } from "@/components/dashboard/FutureCards";
 import useAuth from "@/hooks/useAuth";
+import useCreateDocument from "@/hooks/useCreateDocument";
+import useRecentDocuments from "@/hooks/useRecentDocuments";
 import useWorkspace from "@/hooks/useWorkspace";
 import { getGreeting } from "@/lib/greeting";
 import { formatDate } from "@/lib/format";
@@ -20,6 +20,10 @@ import { formatDate } from "@/lib/format";
 export default function DashboardOverview() {
   const { workspace } = useWorkspace();
   const { user } = useAuth();
+
+  // Loaded once and shared, so the card and the checklist always agree.
+  const recent = useRecentDocuments(workspace.id);
+  const { create, creating, error: createError } = useCreateDocument(workspace.id);
 
   const firstName = user.name.split(" ")[0];
   const members = `${workspace.memberCount} ${workspace.memberCount === 1 ? "member" : "members"}`;
@@ -54,11 +58,20 @@ export default function DashboardOverview() {
 
       <div className="mt-10 space-y-6">
         <Reveal level="balanced" delay={0.3}>
-          <QuickActions />
+          <QuickActions onCreateDocument={create} creatingDocument={creating} />
+          {createError && (
+            <div className="mt-3">
+              <FormAlert message={createError} />
+            </div>
+          )}
         </Reveal>
 
         <Reveal level="balanced" delay={0.4}>
-          <GettingStarted />
+          <GettingStarted
+            recent={recent}
+            onCreateDocument={create}
+            creatingDocument={creating}
+          />
         </Reveal>
 
         <Reveal level="balanced" inView>
@@ -73,7 +86,7 @@ export default function DashboardOverview() {
             <TeamCard />
           </Reveal>
           <Reveal level="balanced" inView className="h-full">
-            <RecentDocumentsCard />
+            <RecentDocumentsCard recent={recent} onCreateDocument={create} creating={creating} />
           </Reveal>
           <Reveal level="balanced" inView delay={0.08} className="h-full">
             <RecentTasksCard />

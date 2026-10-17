@@ -5,6 +5,10 @@ const base = (workspaceId) => `/api/workspaces/${encodeURIComponent(workspaceId)
 export const listDocumentsRequest = (workspaceId, q = "") =>
   apiFetch(q ? `${base(workspaceId)}?q=${encodeURIComponent(q)}` : base(workspaceId));
 
+// The most recently edited documents, newest first. Used by the dashboard.
+export const listRecentDocumentsRequest = (workspaceId, limit = 5) =>
+  apiFetch(`${base(workspaceId)}?limit=${encodeURIComponent(limit)}`);
+
 export const createDocumentRequest = (workspaceId, data = {}) =>
   apiFetch(base(workspaceId), { method: "POST", body: JSON.stringify(data) });
 

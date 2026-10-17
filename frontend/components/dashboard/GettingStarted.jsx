@@ -6,9 +6,11 @@ import DashboardCard from "@/components/dashboard/DashboardCard";
 import useWorkspace from "@/hooks/useWorkspace";
 import { assignableRoles } from "@/lib/permissions";
 
+const ROW = "-mx-2 flex w-full items-center gap-3 rounded-control px-2 py-2.5 text-left transition-colors hover:bg-white/5";
+
 function Step({ step }) {
   const Icon = step.done ? CircleCheck : Circle;
-  const linked = Boolean(step.href) && !step.done;
+  const actionable = !step.done && (step.href || step.onClick);
 
   const inner = (
     <>
@@ -28,7 +30,7 @@ function Step({ step }) {
         {step.note && <span className="ml-2 text-[12px] text-fg-muted">{step.note}</span>}
       </span>
       {step.soon && <span className="soon-chip">Soon</span>}
-      {linked && (
+      {actionable && (
         <ArrowRight size={15} strokeWidth={1.5} className="shrink-0 text-fg-2" aria-hidden="true" />
       )}
     </>
@@ -36,23 +38,28 @@ function Step({ step }) {
 
   return (
     <li>
-      {linked ? (
-        <Link
-          href={step.href}
-          className="-mx-2 flex items-center gap-3 rounded-control px-2 py-2.5 transition-colors hover:bg-white/5"
-        >
+      {actionable && step.href && (
+        <Link href={step.href} className={ROW}>
           {inner}
         </Link>
-      ) : (
-        <div className="flex items-center gap-3 py-2.5">{inner}</div>
       )}
+      {actionable && !step.href && (
+        <button type="button" onClick={step.onClick} disabled={step.busy} className={ROW}>
+          {inner}
+        </button>
+      )}
+      {!actionable && <div className="flex items-center gap-3 py-2.5">{inner}</div>}
     </li>
   );
 }
 
-export default function GettingStarted() {
+// recent: the object from useRecentDocuments. The "document" step is ticked from
+// real data, so it follows reality (delete every document and it un-ticks).
+export default function GettingStarted({ recent, onCreateDocument, creatingDocument }) {
   const { workspace, role } = useWorkspace();
   const canInvite = assignableRoles(role).length > 0;
+
+  const hasDocuments = recent.status === "ready" && recent.documents.length > 0;
 
   // Later phases add real steps here (and remove `soon`) as features land.
   const steps = [
@@ -64,7 +71,13 @@ export default function GettingStarted() {
       href: canInvite ? `/workspaces/${workspace.id}/members` : null,
       note: canInvite ? null : "Ask an owner or admin",
     },
-    { key: "document", label: "Write your first document", soon: true },
+    {
+      key: "document",
+      label: "Write your first document",
+      done: hasDocuments,
+      onClick: onCreateDocument,
+      busy: creatingDocument,
+    },
     { key: "task", label: "Create a task", soon: true },
     { key: "snippet", label: "Save a code snippet", soon: true },
   ];
