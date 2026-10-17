@@ -11,7 +11,13 @@ export const createDocumentRequest = (workspaceId, data = {}) =>
 export const getDocumentRequest = (workspaceId, documentId) =>
   apiFetch(`${base(workspaceId)}/${encodeURIComponent(documentId)}`);
 
+// data: { baseRevision, title?, content? }. The server answers 409 if the
+// revision is out of date (someone else saved first).
+export const updateDocumentRequest = (workspaceId, documentId, data) =>
+  apiFetch(`${base(workspaceId)}/${encodeURIComponent(documentId)}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+
 export const deleteDocumentRequest = (workspaceId, documentId) =>
   apiFetch(`${base(workspaceId)}/${encodeURIComponent(documentId)}`, { method: "DELETE" });
-
-// Step 3 adds the update (autosave) request here.

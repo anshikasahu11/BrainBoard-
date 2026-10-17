@@ -1,19 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import Reveal from "@/components/Reveal";
 import FormAlert from "@/components/auth/FormAlert";
+import DocumentEditor from "@/components/documents/DocumentEditor";
 import useWorkspace from "@/hooks/useWorkspace";
 import { getDocumentRequest } from "@/services/documentService";
-import { formatDate, formatRelative } from "@/lib/format";
 
 export default function DocumentView() {
   const { documentId } = useParams();
   const { workspace } = useWorkspace();
   const [state, setState] = useState({ id: null, status: "loading" });
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -35,7 +36,13 @@ export default function DocumentView() {
     return () => {
       cancelled = true;
     };
-  }, [workspace.id, documentId]);
+  }, [workspace.id, documentId, reloadKey]);
+
+  // Used after an edit conflict: throw away local edits and load the latest version.
+  const reload = useCallback(() => {
+    setState({ id: null, status: "loading" });
+    setReloadKey((key) => key + 1);
+  }, []);
 
   // Treat results for a different document as "still loading".
   const current = state.id === documentId ? state : { status: "loading" };
@@ -78,41 +85,27 @@ export default function DocumentView() {
 
   if (current.status === "error") {
     return (
-      <div className="max-w-md">
+      <div className="max-w-md space-y-4">
         {back}
         <FormAlert message={current.message} />
+        <button
+          type="button"
+          onClick={reload}
+          className="btn-ghost inline-flex items-center rounded-control px-4 py-2 text-sm"
+        >
+          Try again
+        </button>
       </div>
     );
   }
 
-  const doc = current.document;
-
+  // The key restarts the editor whenever a different document (or a reloaded
+  // version) arrives, so one document's text can never appear in another.
   return (
-    <div>
-      {back}
-
-      <Reveal level="balanced">
-        <h1 className="text-glow font-display text-5xl leading-[1.05] tracking-tight sm:text-6xl">
-          {doc.title}
-        </h1>
-      </Reveal>
-
-      <Reveal level="balanced" delay={0.1}>
-        <p className="mt-5 font-mono text-[11px] uppercase tracking-[0.08em] text-fg-2">
-          Created {formatDate(doc.createdAt)} by {doc.createdBy.name} · Edited{" "}
-          {formatRelative(doc.updatedAt)} by {doc.lastEditedBy.name} · Revision {doc.revision}
-        </p>
-      </Reveal>
-
-      <Reveal level="balanced" delay={0.2} className="mt-10">
-        <div className="glass max-w-xl rounded-card p-6">
-          <p className="text-[15px] font-medium">The editor is on its way</p>
-          <p className="mt-1.5 text-[13px] leading-relaxed text-fg-2">
-            Next we build the rich-text editor, with a toolbar and autosave. For now this page proves
-            the document loads from the API.
-          </p>
-        </div>
-      </Reveal>
-    </div>
+    <DocumentEditor
+      key={`${current.document.id}:${reloadKey}`}
+      initialDoc={current.document}
+      onReload={reload}
+    />
   );
 }

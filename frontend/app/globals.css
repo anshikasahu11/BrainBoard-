@@ -1122,3 +1122,259 @@ body {
   padding: 16px 18px;
   border-radius: var(--radius-card);
 }
+/* ---------- Document editor ---------- */
+
+.title-input {
+  width: 100%;
+  padding: 4px 0 8px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid transparent;
+  color: var(--color-fg);
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 5vw, 3rem);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  text-shadow: 0 2px 28px rgb(9 8 12 / 0.55);
+  transition: border-color var(--dur-base) var(--ease-out);
+}
+.title-input::placeholder {
+  color: var(--color-fg-muted);
+}
+.title-input:hover {
+  border-bottom-color: var(--color-line-strong);
+}
+
+.banner-warn {
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius-card);
+  background: rgb(254 221 129 / 0.1);
+  border: 0.5px solid rgb(254 221 129 / 0.4);
+}
+
+/* The formatting toolbar sticks below the mobile top bar (56px) or to the top. */
+.toolbar-wrap {
+  position: sticky;
+  top: 3.5rem;
+  z-index: 30;
+  margin-bottom: 14px;
+}
+@media (min-width: 1024px) {
+  .toolbar-wrap {
+    top: 0.75rem;
+  }
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 6px;
+  border-radius: var(--radius-card);
+  background: rgb(14 10 13 / 0.85);
+  border: 0.5px solid var(--color-line-strong);
+  backdrop-filter: blur(16px);
+}
+.toolbar-sep {
+  width: 1px;
+  height: 20px;
+  margin: 0 4px;
+  background: var(--color-line-strong);
+}
+
+.tool-btn {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  color: var(--color-fg-2);
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+.tool-btn:hover:not(:disabled) {
+  background: rgb(255 255 255 / 0.08);
+  color: var(--color-fg);
+}
+.tool-btn-active {
+  background: rgb(239 106 69 / 0.2);
+  color: var(--color-ember-300);
+}
+.tool-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.link-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: var(--radius-card);
+  background: rgb(14 10 13 / 0.92);
+  border: 0.5px solid var(--color-line-strong);
+  backdrop-filter: blur(16px);
+}
+
+/* The writing surface is nearly solid: it's a work area, so readability comes first. */
+.editor-card {
+  position: relative;
+  border-radius: var(--radius-card);
+  background: rgb(14 10 13 / 0.94);
+  border: 0.5px solid var(--color-line);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
+}
+
+.editor-hint {
+  position: absolute;
+  top: 28px;
+  left: 28px;
+  font-size: 15.5px;
+  line-height: 1.75;
+  color: var(--color-fg-muted);
+  pointer-events: none;
+}
+
+.editor-content .tiptap {
+  min-height: 55vh;
+  padding: 28px;
+  outline: none;
+  font-size: 15.5px;
+  line-height: 1.75;
+  color: var(--color-fg);
+}
+@media (max-width: 640px) {
+  .editor-content .tiptap {
+    padding: 20px;
+  }
+  .editor-hint {
+    top: 20px;
+    left: 20px;
+  }
+}
+
+/* Tailwind's reset removes list bullets, heading sizes and margins. Put them back. */
+.editor-content .tiptap > * + * {
+  margin-top: 0.85em;
+}
+.editor-content .tiptap h1,
+.editor-content .tiptap h2,
+.editor-content .tiptap h3 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  margin-top: 1.4em;
+}
+.editor-content .tiptap h1 {
+  font-size: 2.1rem;
+}
+.editor-content .tiptap h2 {
+  font-size: 1.7rem;
+}
+.editor-content .tiptap h3 {
+  font-size: 1.35rem;
+}
+
+.editor-content .tiptap ul,
+.editor-content .tiptap ol {
+  padding-left: 1.5em;
+}
+.editor-content .tiptap ul {
+  list-style: disc;
+}
+.editor-content .tiptap ul ul {
+  list-style: circle;
+}
+.editor-content .tiptap ol {
+  list-style: decimal;
+}
+.editor-content .tiptap li > p {
+  margin: 0;
+}
+.editor-content .tiptap li + li {
+  margin-top: 0.25em;
+}
+.editor-content .tiptap li > ul,
+.editor-content .tiptap li > ol {
+  margin-top: 0.25em;
+}
+
+.editor-content .tiptap blockquote {
+  padding-left: 1em;
+  border-left: 2px solid var(--color-ember-500);
+  color: var(--color-fg-2);
+}
+
+.editor-content .tiptap code {
+  padding: 0.15em 0.4em;
+  border-radius: 6px;
+  background: rgb(255 255 255 / 0.08);
+  color: var(--color-ember-300);
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+}
+.editor-content .tiptap pre {
+  padding: 14px 16px;
+  overflow-x: auto;
+  border-radius: 12px;
+  background: var(--color-code);
+  border: 0.5px solid rgb(90 180 190 / 0.25);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.editor-content .tiptap pre code {
+  padding: 0;
+  background: none;
+  color: var(--color-fg-2);
+  font-size: inherit;
+}
+
+.editor-content .tiptap hr {
+  margin: 1.6em 0;
+  border: none;
+  border-top: 0.5px solid var(--color-line-strong);
+}
+
+.editor-content .tiptap a {
+  color: var(--color-petrol-300);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Checklists */
+.editor-content .tiptap ul[data-type="taskList"] {
+  padding-left: 0;
+  list-style: none;
+}
+.editor-content .tiptap ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.editor-content .tiptap ul[data-type="taskList"] li > label {
+  flex: none;
+  margin-top: 0.45em;
+  user-select: none;
+}
+.editor-content .tiptap ul[data-type="taskList"] li > div {
+  flex: 1;
+  min-width: 0;
+}
+.editor-content .tiptap ul[data-type="taskList"] input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-ember-500);
+  cursor: pointer;
+}
+.editor-content .tiptap li[data-checked="true"] > div {
+  color: var(--color-fg-muted);
+  text-decoration: line-through;
+}
