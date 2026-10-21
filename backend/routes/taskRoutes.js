@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   listTasks,
+  taskStats,
   createTask,
   getTask,
   updateTask,
@@ -16,6 +17,9 @@ import { createTaskSchema, moveTaskSchema, updateTaskSchema } from "../validator
 const router = Router({ mergeParams: true });
 
 router.route("/").get(listTasks).post(validate(createTaskSchema), createTask);
+
+// "stats" must come BEFORE "/:taskId", or it would be read as a task id.
+router.get("/stats", taskStats);
 
 router.patch("/:taskId/move", validate(moveTaskSchema), moveTask);
 

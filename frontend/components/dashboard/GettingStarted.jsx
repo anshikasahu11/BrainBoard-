@@ -6,7 +6,8 @@ import DashboardCard from "@/components/dashboard/DashboardCard";
 import useWorkspace from "@/hooks/useWorkspace";
 import { assignableRoles } from "@/lib/permissions";
 
-const ROW = "-mx-2 flex w-full items-center gap-3 rounded-control px-2 py-2.5 text-left transition-colors hover:bg-white/5";
+const ROW =
+  "-mx-2 flex w-full items-center gap-3 rounded-control px-2 py-2.5 text-left transition-colors hover:bg-white/5";
 
 function Step({ step }) {
   const Icon = step.done ? CircleCheck : Circle;
@@ -53,13 +54,21 @@ function Step({ step }) {
   );
 }
 
-// recent: the object from useRecentDocuments. The "document" step is ticked from
-// real data, so it follows reality (delete every document and it un-ticks).
-export default function GettingStarted({ recent, onCreateDocument, creatingDocument }) {
+// recent: the useRecentDocuments result. tasks: the useLoad result for the task counts.
+// Both steps are ticked from real data, so they follow reality (delete every
+// document or task and the step un-ticks).
+export default function GettingStarted({
+  recent,
+  tasks,
+  onCreateDocument,
+  creatingDocument,
+  onCreateTask,
+}) {
   const { workspace, role } = useWorkspace();
   const canInvite = assignableRoles(role).length > 0;
 
   const hasDocuments = recent.status === "ready" && recent.documents.length > 0;
+  const hasTasks = tasks.status === "ready" && tasks.data.stats.total > 0;
 
   // Later phases add real steps here (and remove `soon`) as features land.
   const steps = [
@@ -78,7 +87,7 @@ export default function GettingStarted({ recent, onCreateDocument, creatingDocum
       onClick: onCreateDocument,
       busy: creatingDocument,
     },
-    { key: "task", label: "Create a task", soon: true },
+    { key: "task", label: "Create a task", done: hasTasks, onClick: onCreateTask },
     { key: "snippet", label: "Save a code snippet", soon: true },
   ];
 

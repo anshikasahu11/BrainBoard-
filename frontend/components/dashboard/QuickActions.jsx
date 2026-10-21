@@ -53,7 +53,7 @@ function Tile({ action }) {
   );
 }
 
-export default function QuickActions({ onCreateDocument, creatingDocument }) {
+export default function QuickActions({ onCreateDocument, creatingDocument, onCreateTask }) {
   // To switch a tile on in a later phase: give it an onClick or href and drop `soon`.
   const actions = [
     {
@@ -64,7 +64,13 @@ export default function QuickActions({ onCreateDocument, creatingDocument }) {
       onClick: onCreateDocument,
       busy: creatingDocument,
     },
-    { key: "task", label: "New task", hint: "Plan work on a board", icon: SquarePlus, soon: true },
+    {
+      key: "task",
+      label: "New task",
+      hint: "Plan work on a board",
+      icon: SquarePlus,
+      onClick: onCreateTask,
+    },
     { key: "snippet", label: "New snippet", hint: "Save reusable code", icon: FileCode, soon: true },
   ];
 
