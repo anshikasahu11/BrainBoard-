@@ -36,3 +36,9 @@ export function canDeleteTask(role, task, userId) {
   if (role === "owner" || role === "admin") return true;
   return task.createdBy?.id === userId;
 }
+
+// And for snippets.
+export function canDeleteSnippet(role, snippet, userId) {
+  if (role === "owner" || role === "admin") return true;
+  return snippet.createdBy?.id === userId;
+}

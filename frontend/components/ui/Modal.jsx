@@ -10,7 +10,8 @@ const FOCUSABLE =
 // focus on mount, keeps Tab inside, closes on Esc or a click outside, locks page
 // scroll, and gives focus back when it unmounts.
 // busy: while true (saving), it can't be closed.
-export default function Modal({ title, onClose, busy = false, children }) {
+// size: "md" (default) or "lg" for content that needs more room, like code.
+export default function Modal({ title, onClose, busy = false, size = "md", children }) {
   const titleId = useId();
   const panelRef = useRef(null);
 
@@ -78,7 +79,9 @@ export default function Modal({ title, onClose, busy = false, children }) {
             role="dialog"
             aria-modal="true"
             aria-labelledby={titleId}
-            className="glass dialog-panel relative w-full max-w-lg rounded-panel p-6 sm:p-7"
+            className={`glass dialog-panel relative w-full ${
+              size === "lg" ? "max-w-3xl" : "max-w-lg"
+            } rounded-panel p-6 sm:p-7`}
           >
             <button
               type="button"
