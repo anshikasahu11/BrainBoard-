@@ -1,14 +1,27 @@
+"use client";
+
+import { useDroppable } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { Plus } from "lucide-react";
 import TaskCard from "@/components/tasks/TaskCard";
+import { columnId } from "@/lib/boardDnd";
 import { statusInfo } from "@/lib/tasks";
 
-export default function BoardColumn({ status, tasks, onAdd, onOpen }) {
+// highlighted: a card is being dragged into this column right now.
+export default function BoardColumn({ status, tasks, highlighted, dragDisabled, onAdd, onOpen }) {
   const info = statusInfo(status);
   const Icon = info.icon;
   const headingId = `column-${status}`;
 
+  // The whole column accepts drops, so an empty column can receive a card too.
+  const { setNodeRef } = useDroppable({ id: columnId(status) });
+
   return (
-    <section aria-labelledby={headingId} className="board-column">
+    <section
+      ref={setNodeRef}
+      aria-labelledby={headingId}
+      className={`board-column ${highlighted ? "board-column-active" : ""}`}
+    >
       <div className="mb-3 flex items-center justify-between gap-2">
         <h2
           id={headingId}
@@ -33,15 +46,17 @@ export default function BoardColumn({ status, tasks, onAdd, onOpen }) {
         </button>
       </div>
 
-      {tasks.length === 0 ? (
-        <p className="column-empty">No tasks</p>
-      ) : (
-        <ul className="space-y-2">
-          {tasks.map((task) => (
-            <TaskCard key={task.id} task={task} onOpen={onOpen} />
-          ))}
-        </ul>
-      )}
+      <SortableContext items={tasks.map((task) => task.id)} strategy={verticalListSortingStrategy}>
+        {tasks.length === 0 ? (
+          <p className="column-empty">No tasks</p>
+        ) : (
+          <ul className="space-y-2">
+            {tasks.map((task) => (
+              <TaskCard key={task.id} task={task} onOpen={onOpen} dragDisabled={dragDisabled} />
+            ))}
+          </ul>
+        )}
+      </SortableContext>
     </section>
   );
 }
