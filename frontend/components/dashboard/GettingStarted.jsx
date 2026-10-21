@@ -54,23 +54,25 @@ function Step({ step }) {
   );
 }
 
-// recent: the useRecentDocuments result. tasks: the useLoad result for the task counts.
-// Both steps are ticked from real data, so they follow reality (delete every
-// document or task and the step un-ticks).
+// recent: the useRecentDocuments result. tasks and snippets: the useLoad results for the
+// task counts and the newest snippets. Every step is ticked from real data, so it follows
+// reality (delete every document, task or snippet and that step un-ticks).
 export default function GettingStarted({
   recent,
   tasks,
+  snippets,
   onCreateDocument,
   creatingDocument,
   onCreateTask,
+  onCreateSnippet,
 }) {
   const { workspace, role } = useWorkspace();
   const canInvite = assignableRoles(role).length > 0;
 
   const hasDocuments = recent.status === "ready" && recent.documents.length > 0;
   const hasTasks = tasks.status === "ready" && tasks.data.stats.total > 0;
+  const hasSnippets = snippets.status === "ready" && snippets.data.total > 0;
 
-  // Later phases add real steps here (and remove `soon`) as features land.
   const steps = [
     { key: "create", label: "Create your workspace", done: true },
     {
@@ -88,7 +90,7 @@ export default function GettingStarted({
       busy: creatingDocument,
     },
     { key: "task", label: "Create a task", done: hasTasks, onClick: onCreateTask },
-    { key: "snippet", label: "Save a code snippet", soon: true },
+    { key: "snippet", label: "Save a code snippet", done: hasSnippets, onClick: onCreateSnippet },
   ];
 
   const doneCount = steps.filter((step) => step.done).length;

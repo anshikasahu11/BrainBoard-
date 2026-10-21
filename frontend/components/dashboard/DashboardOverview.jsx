@@ -12,12 +12,15 @@ import TeamCard from "@/components/dashboard/TeamCard";
 import AssignedCard from "@/components/dashboard/AssignedCard";
 import RecentDocumentsCard from "@/components/dashboard/RecentDocumentsCard";
 import RecentTasksCard from "@/components/dashboard/RecentTasksCard";
+import RecentSnippetsCard from "@/components/dashboard/RecentSnippetsCard";
 import TaskDialogHost from "@/components/dashboard/TaskDialogHost";
+import SnippetDialogHost from "@/components/dashboard/SnippetDialogHost";
 import useAuth from "@/hooks/useAuth";
 import useCreateDocument from "@/hooks/useCreateDocument";
 import useLoad from "@/hooks/useLoad";
 import useRecentDocuments from "@/hooks/useRecentDocuments";
 import useWorkspace from "@/hooks/useWorkspace";
+import { listSnippetsRequest } from "@/services/snippetService";
 import { getTaskStatsRequest, listTasksRequest } from "@/services/taskService";
 import { getGreeting } from "@/lib/greeting";
 import { formatDate } from "@/lib/format";
@@ -42,7 +45,13 @@ export default function DashboardOverview() {
     listTasksRequest(workspace.id, { sort: "updated", limit: 5 })
   );
 
+  // The newest snippets. The list also reports the real total, which the checklist uses.
+  const snippets = useLoad(`snippets-recent:${workspace.id}`, () =>
+    listSnippetsRequest(workspace.id, { limit: 4 })
+  );
+
   const [taskDialog, setTaskDialog] = useState(null); // {} to create, { task } to edit, or null
+  const [snippetDialog, setSnippetDialog] = useState(null); // { mode: "form" }, { mode: "view", id }, or null
   const [notice, setNotice] = useState("");
 
   function openNewTask() {
@@ -55,13 +64,30 @@ export default function DashboardOverview() {
     setTaskDialog({ task });
   }
 
-  // After any change, close the dialog and refresh all three task cards together.
-  function finish(message) {
+  function openNewSnippet() {
+    setNotice("");
+    setSnippetDialog({ mode: "form" });
+  }
+
+  function openSnippet(snippet) {
+    setNotice("");
+    setSnippetDialog({ mode: "view", id: snippet.id });
+  }
+
+  // After any task change, close the dialog and refresh all three task cards together.
+  function finishTask(message) {
     setTaskDialog(null);
     setNotice(message);
     stats.reload();
     assigned.reload();
     recentTasks.reload();
+  }
+
+  // After any snippet change, close the dialog and refresh the snippets card (and checklist).
+  function finishSnippet(message) {
+    setSnippetDialog(null);
+    setNotice(message);
+    snippets.reload();
   }
 
   const firstName = user.name.split(" ")[0];
@@ -105,6 +131,7 @@ export default function DashboardOverview() {
             onCreateDocument={create}
             creatingDocument={creating}
             onCreateTask={openNewTask}
+            onCreateSnippet={openNewSnippet}
           />
           {createError && (
             <div className="mt-3">
@@ -117,9 +144,11 @@ export default function DashboardOverview() {
           <GettingStarted
             recent={recentDocs}
             tasks={stats}
+            snippets={snippets}
             onCreateDocument={create}
             creatingDocument={creating}
             onCreateTask={openNewTask}
+            onCreateSnippet={openNewSnippet}
           />
         </Reveal>
 
@@ -140,16 +169,31 @@ export default function DashboardOverview() {
           <Reveal level="balanced" inView delay={0.08} className="h-full">
             <RecentTasksCard recent={recentTasks} onOpenTask={openTask} onCreateTask={openNewTask} />
           </Reveal>
+          <Reveal level="balanced" inView className="h-full md:col-span-2">
+            <RecentSnippetsCard
+              recent={snippets}
+              onOpen={openSnippet}
+              onCreate={openNewSnippet}
+            />
+          </Reveal>
         </div>
       </div>
 
       {taskDialog && (
         <TaskDialogHost
           task={taskDialog.task}
-          onSaved={(task, verb) => finish(`“${task.title}” was ${verb}.`)}
-          onDeleted={(task) => finish(`“${task.title}” was deleted.`)}
-          onGone={() => finish("That task was already deleted.")}
+          onSaved={(task, verb) => finishTask(`“${task.title}” was ${verb}.`)}
+          onDeleted={(task) => finishTask(`“${task.title}” was deleted.`)}
+          onGone={() => finishTask("That task was already deleted.")}
           onClose={() => setTaskDialog(null)}
+        />
+      )}
+
+      {snippetDialog && (
+        <SnippetDialogHost
+          start={snippetDialog}
+          onChanged={finishSnippet}
+          onClose={() => setSnippetDialog(null)}
         />
       )}
     </div>
