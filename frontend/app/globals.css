@@ -1393,3 +1393,69 @@ button.quick-tile:disabled {
     border-color: rgb(255 235 225 / 0.26);
   }
 }
+/* ---------- Task board ---------- */
+
+/* Four columns that fill the width. On narrow screens each keeps a readable
+   width and the board scrolls sideways. */
+.board-grid {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(260px, 1fr);
+  gap: 16px;
+  overflow-x: auto;
+  padding-bottom: 12px;
+  scroll-snap-type: x proximity;
+}
+
+.board-column {
+  min-height: 140px;
+  padding: 12px;
+  border-radius: var(--radius-card);
+  background: rgb(9 8 12 / 0.55);
+  border: 0.5px solid var(--color-line);
+  scroll-snap-align: start;
+}
+
+.column-empty {
+  padding: 18px 12px;
+  border: 1px dashed var(--color-line-strong);
+  border-radius: 10px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--color-fg-muted);
+}
+
+.task-card {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  text-align: left;
+  background: rgb(28 19 21 / 0.92);
+  border: 0.5px solid var(--color-line-strong);
+  transition:
+    border-color var(--dur-base) var(--ease-out),
+    transform var(--dur-base) var(--ease-out);
+}
+@media (hover: hover) {
+  .task-card:hover {
+    border-color: rgb(255 235 225 / 0.28);
+    transform: translateY(-1px);
+  }
+}
+
+.avatar-sm {
+  width: 22px;
+  height: 22px;
+  font-size: 11px;
+}
+
+/* A multi-line text box. Overrides the fixed height of .input. */
+.textarea {
+  height: auto;
+  min-height: 96px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  line-height: 1.5;
+  resize: vertical;
+}

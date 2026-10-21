@@ -30,3 +30,9 @@ export function canDeleteDocument(role, doc, userId) {
   if (role === "owner" || role === "admin") return true;
   return doc.createdBy?.id === userId;
 }
+
+// The same rule for tasks.
+export function canDeleteTask(role, task, userId) {
+  if (role === "owner" || role === "admin") return true;
+  return task.createdBy?.id === userId;
+}

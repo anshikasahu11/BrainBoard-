@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ArrowLeft, Menu, X } from "lucide-react";
 import AmbientBackground from "@/components/AmbientBackground";
 import FullScreenLoader from "@/components/ui/FullScreenLoader";
@@ -23,6 +24,7 @@ function Frame({ children }) {
 
 export default function AppShell({ children }) {
   const { status, workspace, error, retry } = useWorkspace();
+  const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const closeButtonRef = useRef(null);
 
@@ -104,6 +106,9 @@ export default function AppShell({ children }) {
     );
   }
 
+  // The task board needs more room than the other pages.
+  const wide = pathname.startsWith(`/workspaces/${workspace.id}/tasks`);
+
   return (
     <Frame>
       <a href="#main" className="skip-link">
@@ -131,7 +136,11 @@ export default function AppShell({ children }) {
             <span className="min-w-0 truncate text-[14px] font-medium">{workspace.name}</span>
           </div>
 
-          <main id="main" tabIndex={-1} className="mx-auto w-full max-w-4xl flex-1 px-6 py-10 sm:py-14">
+          <main
+            id="main"
+            tabIndex={-1}
+            className={`mx-auto w-full flex-1 px-6 py-10 sm:py-14 ${wide ? "max-w-7xl" : "max-w-4xl"}`}
+          >
             {children}
           </main>
         </div>
