@@ -4,6 +4,7 @@ import { isObjectId } from "../utils/objectId.js";
 import { escapeRegex } from "../utils/escapeRegex.js";
 import { ROLES } from "../constants/roles.js";
 import { PRIORITIES, STATUSES } from "../constants/tasks.js";
+import { emitToWorkspace, socketIdFrom } from "../socket/realtime.js";
 import {
   assertWorkspaceMember,
   endPosition,
@@ -31,6 +32,17 @@ function isRealDate(value) {
 function scoped(req, id) {
   if (!isObjectId(id)) throw notFound();
   return { _id: id, workspace: req.workspace._id };
+}
+
+// Tells everyone in the workspace (except the browser that made the change) about it.
+// Called only AFTER the change is saved.
+function announce(req, event, payload) {
+  emitToWorkspace(
+    req.workspace.id,
+    event,
+    { workspaceId: req.workspace.id, ...payload },
+    { exceptSocketId: socketIdFrom(req) }
+  );
 }
 
 // GET /api/workspaces/:workspaceId/tasks
@@ -140,9 +152,11 @@ export async function createTask(req, res) {
   });
   await task.populate(POPULATE);
 
-  // Phase 8: broadcast "task:created". Phase 10: write an activity entry.
-  // Phase 13: notify the assignee.
-  res.status(201).json({ task: toTaskDTO(task) });
+  const dto = toTaskDTO(task);
+  announce(req, "task:created", { task: dto });
+
+  // Phase 10: write an activity entry. Phase 13: notify the assignee.
+  res.status(201).json({ task: dto });
 }
 
 // GET /api/workspaces/:workspaceId/tasks/:taskId
@@ -180,8 +194,11 @@ export async function updateTask(req, res) {
   await task.save();
   await task.populate(POPULATE);
 
-  // Phase 8: broadcast "task:updated". Phase 13: notify a new assignee.
-  res.json({ task: toTaskDTO(task) });
+  const dto = toTaskDTO(task);
+  announce(req, "task:updated", { task: dto });
+
+  // Phase 13: notify a new assignee.
+  res.json({ task: dto });
 }
 
 // PATCH /api/workspaces/:workspaceId/tasks/:taskId/move
@@ -202,8 +219,11 @@ export async function moveTask(req, res) {
   await task.save();
   await task.populate(POPULATE);
 
-  // Phase 8: broadcast "task:moved". Phase 10: write an activity entry.
-  res.json({ task: toTaskDTO(task) });
+  const dto = toTaskDTO(task);
+  announce(req, "task:moved", { task: dto });
+
+  // Phase 10: write an activity entry.
+  res.json({ task: dto });
 }
 
 // DELETE /api/workspaces/:workspaceId/tasks/:taskId
@@ -218,5 +238,8 @@ export async function deleteTask(req, res) {
   }
 
   await task.deleteOne();
+
+  announce(req, "task:deleted", { taskId: task.id });
+
   res.status(204).end();
 }
