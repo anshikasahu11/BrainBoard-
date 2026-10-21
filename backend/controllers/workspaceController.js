@@ -1,6 +1,7 @@
 import Workspace from "../models/Workspace.js";
 import Membership from "../models/Membership.js";
 import { ROLES } from "../constants/roles.js";
+import { announce, closeWorkspaceRoom } from "../socket/realtime.js";
 import { deleteWorkspaceCascade, toWorkspaceDTO } from "../services/workspaceService.js";
 
 // POST /api/workspaces
@@ -60,12 +61,27 @@ export async function renameWorkspace(req, res) {
   req.workspace.name = req.body.name;
   await req.workspace.save();
 
+  // Only what's the same for everyone: the workspace data you get over REST also
+  // has YOUR role and the member count, which differ from person to person.
+  announce(req, "workspace:updated", {
+    name: req.workspace.name,
+    updatedAt: req.workspace.updatedAt,
+  });
+
   const memberCount = await Membership.countDocuments({ workspace: req.workspace._id });
   res.json({ workspace: toWorkspaceDTO(req.workspace, req.membership.role, memberCount) });
 }
 
 // DELETE /api/workspaces/:workspaceId  (owner only)
 export async function deleteWorkspace(req, res) {
+  const workspaceId = req.workspace.id;
+
   await deleteWorkspaceCascade(req.workspace._id);
+
+  // Tell everyone in the room first, then empty it: nobody stays subscribed to
+  // a workspace that no longer exists.
+  announce(req, "workspace:deleted", {});
+  closeWorkspaceRoom(workspaceId);
+
   res.status(204).end();
 }

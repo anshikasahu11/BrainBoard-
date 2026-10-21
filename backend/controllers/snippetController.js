@@ -4,6 +4,7 @@ import { isObjectId } from "../utils/objectId.js";
 import { escapeRegex } from "../utils/escapeRegex.js";
 import { ROLES } from "../constants/roles.js";
 import { LANGUAGES } from "../constants/snippets.js";
+import { announce } from "../socket/realtime.js";
 import { cleanCode, derive, toListItemDTO, toSnippetDTO } from "../services/snippetService.js";
 
 const POPULATE = [
@@ -85,7 +86,10 @@ export async function createSnippet(req, res) {
   });
   await snippet.populate(POPULATE);
 
-  // Phase 8: broadcast "snippet:created". Phase 10: write an activity entry.
+  // Teammates get the list-item shape: a preview, never the full code.
+  announce(req, "snippet:created", { snippet: toListItemDTO(snippet) });
+
+  // Phase 10: write an activity entry.
   res.status(201).json({ snippet: toSnippetDTO(snippet) });
 }
 
@@ -136,7 +140,8 @@ export async function updateSnippet(req, res) {
     );
   }
 
-  // Phase 8: broadcast "snippet:updated".
+  announce(req, "snippet:updated", { snippet: toListItemDTO(updated) });
+
   res.json({ snippet: toSnippetDTO(updated) });
 }
 
@@ -152,5 +157,8 @@ export async function deleteSnippet(req, res) {
   }
 
   await snippet.deleteOne();
+
+  announce(req, "snippet:deleted", { snippetId: snippet.id });
+
   res.status(204).end();
 }

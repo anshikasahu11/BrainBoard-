@@ -3,6 +3,7 @@ import AppError from "../utils/AppError.js";
 import { isObjectId } from "../utils/objectId.js";
 import { escapeRegex } from "../utils/escapeRegex.js";
 import { ROLES } from "../constants/roles.js";
+import { announce } from "../socket/realtime.js";
 import {
   EMPTY_DOC,
   cleanContent,
@@ -55,7 +56,10 @@ export async function createDocument(req, res) {
   });
   await doc.populate(POPULATE);
 
-  // Phase 8: broadcast "document:created". Phase 10: write an activity entry.
+  // Teammates get the list-item shape: no content, so the event stays tiny.
+  announce(req, "document:created", { document: toListItemDTO(doc) });
+
+  // Phase 10: write an activity entry.
   res.status(201).json({ document: toDocumentDTO(doc) });
 }
 
@@ -100,7 +104,10 @@ export async function updateDocument(req, res) {
     );
   }
 
-  // Phase 8: broadcast "document:updated". Phase 9: snapshot a version.
+  // The new revision tells anyone who has this document open that theirs is out of date.
+  announce(req, "document:updated", { document: toListItemDTO(updated) });
+
+  // Phase 9: snapshot a version.
   res.json({ document: toDocumentDTO(updated) });
 }
 
@@ -116,5 +123,8 @@ export async function deleteDocument(req, res) {
   }
 
   await doc.deleteOne();
+
+  announce(req, "document:deleted", { documentId: doc.id });
+
   res.status(204).end();
 }

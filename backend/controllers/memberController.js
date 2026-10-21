@@ -4,6 +4,7 @@ import Task from "../models/Task.js";
 import AppError from "../utils/AppError.js";
 import { isObjectId } from "../utils/objectId.js";
 import { ROLES } from "../constants/roles.js";
+import { announce, emitToUser, kickFromWorkspace } from "../socket/realtime.js";
 import {
   toMemberDTO,
   sortMembers,
@@ -62,8 +63,13 @@ export async function addMember(req, res) {
   });
   await membership.populate("user");
 
-  // Phase 13: notify the new member. Phase 8: broadcast "member:added" over Socket.IO.
-  res.status(201).json({ member: toMemberDTO(membership) });
+  const member = toMemberDTO(membership);
+  announce(req, "member:added", { member });
+  // The new member's own screen can show the workspace straight away.
+  emitToUser(user.id, "workspace:added", { workspaceId: req.workspace.id });
+
+  // Phase 13: notify the new member.
+  res.status(201).json({ member });
 }
 
 // PATCH /api/workspaces/:workspaceId/members/:userId  (owner only)
@@ -77,7 +83,12 @@ export async function updateMemberRole(req, res) {
   target.role = req.body.role;
   await target.save();
 
-  res.json({ member: toMemberDTO(target) });
+  // The server already uses the new role on the very next request. This lets the
+  // affected person's screen catch up.
+  const member = toMemberDTO(target);
+  announce(req, "member:updated", { member });
+
+  res.json({ member });
 }
 
 // DELETE /api/workspaces/:workspaceId/members/:userId
@@ -101,6 +112,19 @@ export async function removeMember(req, res) {
     { workspace: req.workspace._id, assignee: target.user._id },
     { $set: { assignee: null } }
   );
+
+  const reason = isSelf ? "left" : "removed";
+  const workspaceId = req.workspace.id;
+  const userId = target.user.id;
+
+  // 1. The room hears about it (the person leaving is still in the room, so they do too).
+  announce(req, "member:removed", { userId, reason });
+  // 2. Boards refresh, because that person's tasks were just unassigned.
+  announce(req, "tasks:refresh", {});
+  // 3. The person is told their access is gone, on every tab they have open.
+  emitToUser(userId, "workspace:access-lost", { workspaceId, reason });
+  // 4. Their live connections are taken out of the workspace's room.
+  await kickFromWorkspace(userId, workspaceId);
 
   res.status(204).end();
 }

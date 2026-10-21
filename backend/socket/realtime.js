@@ -1,7 +1,8 @@
-import { workspaceRoom } from "./rooms.js";
+import { broadcastPresence } from "./presence.js";
+import { userRoom, workspaceRoom } from "./rooms.js";
 
 // The one place the rest of the backend talks to Socket.IO.
-// Controllers call emitToWorkspace(...) AFTER the change is saved.
+// Controllers call announce(...) AFTER the change is saved.
 // Everything is a no-op until the socket server has started (and in any test
 // that runs without one), so controllers never have to check.
 
@@ -34,5 +35,52 @@ export function emitToWorkspace(workspaceId, event, payload, { exceptSocketId } 
     target.emit(event, payload);
   } catch (error) {
     console.error("Real-time announcement failed:", error.message);
+  }
+}
+
+// The common case in a controller: announce something about THIS request's workspace,
+// leaving out the browser that made the change.
+export function announce(req, event, payload) {
+  emitToWorkspace(
+    req.workspace.id,
+    event,
+    { workspaceId: req.workspace.id, ...payload },
+    { exceptSocketId: socketIdFrom(req) }
+  );
+}
+
+// Sends an event to one person, on every tab they have open.
+export function emitToUser(userId, event, payload) {
+  if (!io) return;
+
+  try {
+    io.to(userRoom(String(userId))).emit(event, payload);
+  } catch (error) {
+    console.error("Real-time message failed:", error.message);
+  }
+}
+
+// Takes one person's live access to a workspace away (they were removed or left),
+// then tells the others who's still online.
+export async function kickFromWorkspace(userId, workspaceId) {
+  if (!io) return;
+
+  try {
+    await io.in(userRoom(String(userId))).socketsLeave(workspaceRoom(String(workspaceId)));
+    await broadcastPresence(io, String(workspaceId));
+  } catch (error) {
+    console.error("Removing live access failed:", error.message);
+  }
+}
+
+// Empties a workspace's room (the workspace was deleted).
+export function closeWorkspaceRoom(workspaceId) {
+  if (!io) return;
+
+  try {
+    const room = workspaceRoom(String(workspaceId));
+    io.in(room).socketsLeave(room);
+  } catch (error) {
+    console.error("Closing the workspace room failed:", error.message);
   }
 }
