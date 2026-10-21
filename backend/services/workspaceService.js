@@ -2,9 +2,10 @@ import Workspace from "../models/Workspace.js";
 import Membership from "../models/Membership.js";
 import Document from "../models/Document.js";
 import Task from "../models/Task.js";
+import Snippet from "../models/Snippet.js";
 
 // Deleting a workspace must remove everything that belongs to it.
-// Later phases add one line each here (snippets, activity...).
+// Later phases add one line each here (activity, notifications...).
 export async function deleteWorkspaceCascade(workspaceId) {
   // The workspace goes first, so nobody can reach a half-deleted workspace
   // if the cleanup below is interrupted.
@@ -12,7 +13,7 @@ export async function deleteWorkspaceCascade(workspaceId) {
   await Membership.deleteMany({ workspace: workspaceId });
   await Document.deleteMany({ workspace: workspaceId });
   await Task.deleteMany({ workspace: workspaceId });
-  // Phase 7: await Snippet.deleteMany({ workspace: workspaceId });
+  await Snippet.deleteMany({ workspace: workspaceId });
 }
 
 // The shape the frontend receives. Never send raw database objects.
