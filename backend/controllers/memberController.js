@@ -1,5 +1,6 @@
 import Membership from "../models/Membership.js";
 import User from "../models/User.js";
+import Task from "../models/Task.js";
 import AppError from "../utils/AppError.js";
 import { isObjectId } from "../utils/objectId.js";
 import { ROLES } from "../constants/roles.js";
@@ -94,5 +95,12 @@ export async function removeMember(req, res) {
   }
 
   await target.deleteOne();
+
+  // Someone with no access can't own any work: unassign their tasks here.
+  await Task.updateMany(
+    { workspace: req.workspace._id, assignee: target.user._id },
+    { $set: { assignee: null } }
+  );
+
   res.status(204).end();
 }

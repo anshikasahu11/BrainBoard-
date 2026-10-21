@@ -8,6 +8,7 @@ import {
 } from "../controllers/workspaceController.js";
 import memberRoutes from "./memberRoutes.js";
 import documentRoutes from "./documentRoutes.js";
+import taskRoutes from "./taskRoutes.js";
 import { protect } from "../middleware/auth.js";
 import { loadWorkspace, requireRole } from "../middleware/workspaceAccess.js";
 import { validate } from "../middleware/validate.js";
@@ -28,8 +29,9 @@ router
   .patch(requireRole(ROLES.OWNER, ROLES.ADMIN), validate(workspaceSchema), renameWorkspace)
   .delete(requireRole(ROLES.OWNER), deleteWorkspace);
 
-// Members and documents of a workspace. loadWorkspace runs first, so only members get in.
+// Members, documents and tasks of a workspace. loadWorkspace runs first, so only members get in.
 router.use("/:workspaceId/members", loadWorkspace, memberRoutes);
 router.use("/:workspaceId/documents", loadWorkspace, documentRoutes);
+router.use("/:workspaceId/tasks", loadWorkspace, taskRoutes);
 
 export default router;
