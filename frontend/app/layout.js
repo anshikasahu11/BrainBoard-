@@ -1,5 +1,6 @@
 import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import { AuthProvider } from "@/context/AuthContext";
+import { RealtimeProvider } from "@/context/RealtimeContext";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -30,7 +31,10 @@ export default function RootLayout({ children }) {
       className={`${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable}`}
     >
       <body className="font-sans text-fg antialiased">
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          {/* The live connection opens while you're signed in and closes when you sign out. */}
+          <RealtimeProvider>{children}</RealtimeProvider>
+        </AuthProvider>
       </body>
     </html>
   );

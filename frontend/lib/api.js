@@ -1,6 +1,7 @@
 import { getToken, clearToken } from "@/lib/authStorage";
+import { getSocketId } from "@/lib/socketId";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 // An error carrying the HTTP status and the backend's per-field messages.
 export class ApiError extends Error {
@@ -17,6 +18,10 @@ export async function apiFetch(path, options = {}) {
 
   const headers = { "Content-Type": "application/json", ...options.headers };
   if (token) headers.Authorization = `Bearer ${token}`;
+
+  // Lets the server leave THIS tab out of the live announcement about its own change.
+  const socketId = getSocketId();
+  if (socketId) headers["X-Socket-Id"] = socketId;
 
   let res;
   try {

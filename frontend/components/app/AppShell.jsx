@@ -7,9 +7,31 @@ import { ArrowLeft, Menu, X } from "lucide-react";
 import AmbientBackground from "@/components/AmbientBackground";
 import FullScreenLoader from "@/components/ui/FullScreenLoader";
 import FormAlert from "@/components/auth/FormAlert";
+import LiveIndicator from "@/components/app/LiveIndicator";
 import Sidebar from "@/components/app/Sidebar";
 import Reveal from "@/components/Reveal";
 import useWorkspace from "@/hooks/useWorkspace";
+
+// What to say when access is gone, depending on why.
+const LOST_COPY = {
+  removed: {
+    title: "You’ve been removed",
+    text: "An owner or admin removed you from this workspace.",
+  },
+  left: {
+    title: "You left this workspace",
+    text: "You no longer have access to it.",
+  },
+  deleted: {
+    title: "This workspace was deleted",
+    text: "The owner deleted it, along with everything in it.",
+  },
+};
+
+const DEFAULT_LOST = {
+  title: "Workspace not found",
+  text: "It may have been deleted, or you may not have access to it.",
+};
 
 // The background and motion level shared by every state below.
 function Frame({ children }) {
@@ -23,7 +45,7 @@ function Frame({ children }) {
 }
 
 export default function AppShell({ children }) {
-  const { status, workspace, error, retry } = useWorkspace();
+  const { status, workspace, error, lostReason, retry } = useWorkspace();
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const closeButtonRef = useRef(null);
@@ -56,8 +78,10 @@ export default function AppShell({ children }) {
     );
   }
 
-  // 404 means the workspace is missing, deleted or not yours. One screen for all three.
+  // Missing, deleted, not yours, removed... one screen, with the reason when we know it.
   if (status === "notfound") {
+    const lost = LOST_COPY[lostReason] ?? DEFAULT_LOST;
+
     return (
       <Frame>
         <main className="mx-auto max-w-2xl px-6 py-24">
@@ -68,14 +92,15 @@ export default function AppShell({ children }) {
             <ArrowLeft size={14} strokeWidth={1.5} aria-hidden="true" />
             All workspaces
           </Link>
-          <Reveal level="balanced">
-            <h1 className="text-glow font-display text-5xl leading-[1.05] tracking-tight">
-              Workspace not found
-            </h1>
-            <p className="mt-4 max-w-md text-[15px] leading-relaxed text-fg-2">
-              It may have been deleted, or you may not have access to it.
-            </p>
-          </Reveal>
+          {/* role="alert": if this appears while you're looking at the page, it's announced. */}
+          <div role="alert">
+            <Reveal level="balanced">
+              <h1 className="text-glow font-display text-5xl leading-[1.05] tracking-tight">
+                {lost.title}
+              </h1>
+              <p className="mt-4 max-w-md text-[15px] leading-relaxed text-fg-2">{lost.text}</p>
+            </Reveal>
+          </div>
         </main>
       </Frame>
     );
@@ -133,7 +158,8 @@ export default function AppShell({ children }) {
             >
               <Menu size={18} strokeWidth={1.5} />
             </button>
-            <span className="min-w-0 truncate text-[14px] font-medium">{workspace.name}</span>
+            <span className="min-w-0 flex-1 truncate text-[14px] font-medium">{workspace.name}</span>
+            <LiveIndicator compact />
           </div>
 
           <main

@@ -25,7 +25,9 @@ import { TaskCardPreview } from "@/components/tasks/TaskCard";
 import TaskDialog from "@/components/tasks/TaskDialog";
 import TaskFilters from "@/components/tasks/TaskFilters";
 import useAuth from "@/hooks/useAuth";
+import useCoalescedReload from "@/hooks/useCoalescedReload";
 import useDebounce from "@/hooks/useDebounce";
+import useLiveEvents from "@/hooks/useLiveEvents";
 import useMembers from "@/hooks/useMembers";
 import useTasks from "@/hooks/useTasks";
 import useWorkspace from "@/hooks/useWorkspace";
@@ -72,6 +74,23 @@ export default function TaskBoard() {
   const dragRef = useRef(null);
   const [moving, setMoving] = useState(false); // a move is being saved
   const [moveError, setMoveError] = useState("");
+
+  // Teammates' changes arrive as live events. We reload the board (one merged request
+  // for a burst of events) rather than patching cards in by hand, so your filters, the
+  // order and the totals are always exactly what the server says. While you're dragging
+  // or a move is being saved, the reload waits: the board must not change under your hand.
+  const liveReload = useCoalescedReload(board.reload, Boolean(drag) || moving);
+  const isThis = (payload) => payload?.workspaceId === workspace.id;
+
+  useLiveEvents({
+    "task:created": (payload) => isThis(payload) && liveReload(),
+    "task:updated": (payload) => isThis(payload) && liveReload(),
+    "task:moved": (payload) => isThis(payload) && liveReload(),
+    "task:deleted": (payload) => isThis(payload) && liveReload(),
+    "tasks:refresh": (payload) => isThis(payload) && liveReload(),
+    // We were offline for a while, so events may have been missed.
+    "connection:restored": () => liveReload(),
+  });
 
   const sensors = useSensors(
     // A click still opens the card: dragging needs 6px of movement.

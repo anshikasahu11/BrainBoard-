@@ -16,7 +16,9 @@ import RecentSnippetsCard from "@/components/dashboard/RecentSnippetsCard";
 import TaskDialogHost from "@/components/dashboard/TaskDialogHost";
 import SnippetDialogHost from "@/components/dashboard/SnippetDialogHost";
 import useAuth from "@/hooks/useAuth";
+import useCoalescedReload from "@/hooks/useCoalescedReload";
 import useCreateDocument from "@/hooks/useCreateDocument";
+import useLiveEvents from "@/hooks/useLiveEvents";
 import useLoad from "@/hooks/useLoad";
 import useRecentDocuments from "@/hooks/useRecentDocuments";
 import useWorkspace from "@/hooks/useWorkspace";
@@ -53,6 +55,29 @@ export default function DashboardOverview() {
   const [taskDialog, setTaskDialog] = useState(null); // {} to create, { task } to edit, or null
   const [snippetDialog, setSnippetDialog] = useState(null); // { mode: "form" }, { mode: "view", id }, or null
   const [notice, setNotice] = useState("");
+
+  // Live: when a teammate changes a task, refresh the three task cards together
+  // (one merged reload for a burst of events). Documents and snippets follow in the next step.
+  const { reload: reloadStats } = stats;
+  const { reload: reloadAssigned } = assigned;
+  const { reload: reloadRecentTasks } = recentTasks;
+
+  const liveTaskReload = useCoalescedReload(() => {
+    reloadStats();
+    reloadAssigned();
+    reloadRecentTasks();
+  });
+  const isThis = (payload) => payload?.workspaceId === workspace.id;
+
+  useLiveEvents({
+    "task:created": (payload) => isThis(payload) && liveTaskReload(),
+    "task:updated": (payload) => isThis(payload) && liveTaskReload(),
+    "task:moved": (payload) => isThis(payload) && liveTaskReload(),
+    "task:deleted": (payload) => isThis(payload) && liveTaskReload(),
+    "tasks:refresh": (payload) => isThis(payload) && liveTaskReload(),
+    // We were offline for a while, so events may have been missed.
+    "connection:restored": () => liveTaskReload(),
+  });
 
   function openNewTask() {
     setNotice("");
