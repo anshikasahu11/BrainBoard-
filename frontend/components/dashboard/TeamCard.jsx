@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import DashboardCard from "@/components/dashboard/DashboardCard";
 import FormAlert from "@/components/auth/FormAlert";
 import RoleBadge from "@/components/workspaces/RoleBadge";
+import useCoalescedReload from "@/hooks/useCoalescedReload";
+import useLiveEvents from "@/hooks/useLiveEvents";
 import useWorkspace from "@/hooks/useWorkspace";
 import { listMembersRequest } from "@/services/memberService";
 
@@ -14,16 +16,26 @@ export default function TeamCard() {
   const [state, setState] = useState({ status: "loading", members: [], error: "" });
   const [attempt, setAttempt] = useState(0);
 
+  // True while a background (live) refresh is running: if it fails, the list stays.
+  const quietRef = useRef(false);
+
   useEffect(() => {
     let cancelled = false;
 
     // The backend already sorts: owner first, then admins, then members.
     listMembersRequest(workspace.id)
       .then((data) => {
-        if (!cancelled) setState({ status: "ready", members: data.members, error: "" });
+        if (cancelled) return;
+        quietRef.current = false;
+        setState({ status: "ready", members: data.members, error: "" });
       })
       .catch((error) => {
-        if (!cancelled) setState({ status: "error", members: [], error: error.message });
+        if (cancelled) return;
+        setState((current) =>
+          quietRef.current && current.status === "ready"
+            ? current
+            : { status: "error", members: [], error: error.message }
+        );
       });
 
     return () => {
@@ -31,7 +43,23 @@ export default function TeamCard() {
     };
   }, [workspace.id, attempt]);
 
+  // Live: people joined, left or changed role.
+  const liveReload = useCoalescedReload(() => {
+    quietRef.current = true;
+    setAttempt((n) => n + 1);
+  });
+  const isThis = (payload) => payload?.workspaceId === workspace.id;
+
+  useLiveEvents({
+    "member:added": (payload) => isThis(payload) && liveReload(),
+    "member:updated": (payload) => isThis(payload) && liveReload(),
+    "member:removed": (payload) => isThis(payload) && liveReload(),
+    // We were offline for a while, so events may have been missed.
+    "connection:restored": () => liveReload(),
+  });
+
   function retry() {
+    quietRef.current = false;
     setState({ status: "loading", members: [], error: "" });
     setAttempt((n) => n + 1);
   }

@@ -11,7 +11,9 @@ import SnippetFilters from "@/components/snippets/SnippetFilters";
 import SnippetForm from "@/components/snippets/SnippetForm";
 import SnippetViewer from "@/components/snippets/SnippetViewer";
 import useAuth from "@/hooks/useAuth";
+import useCoalescedReload from "@/hooks/useCoalescedReload";
 import useDebounce from "@/hooks/useDebounce";
+import useLiveEvents from "@/hooks/useLiveEvents";
 import useLoad from "@/hooks/useLoad";
 import useSnippets from "@/hooks/useSnippets";
 import useWorkspace from "@/hooks/useWorkspace";
@@ -33,6 +35,29 @@ export default function SnippetsPanel() {
   // { mode: "view", id } | { mode: "form", snippet? } | null
   const [dialog, setDialog] = useState(null);
   const [notice, setNotice] = useState("");
+
+  // Live: when a teammate creates, edits or deletes a snippet, refresh the list AND
+  // the tag menu (a new tag may have appeared). A burst of events is merged into one
+  // refresh. Your search and filters are kept.
+  const { reload: reloadList } = list;
+  const { reload: reloadTags } = tags;
+  const liveReload = useCoalescedReload(
+    () => {
+      reloadList();
+      reloadTags();
+    },
+    false,
+    300
+  );
+  const isThis = (payload) => payload?.workspaceId === workspace.id;
+
+  useLiveEvents({
+    "snippet:created": (payload) => isThis(payload) && liveReload(),
+    "snippet:updated": (payload) => isThis(payload) && liveReload(),
+    "snippet:deleted": (payload) => isThis(payload) && liveReload(),
+    // We were offline for a while, so events may have been missed.
+    "connection:restored": () => liveReload(),
+  });
 
   const filtersActive = Boolean(typedQuery || language || tag);
 

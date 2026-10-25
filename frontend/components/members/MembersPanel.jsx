@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import PageHeading from "@/components/app/PageHeading";
 import Reveal from "@/components/Reveal";
 import FormAlert from "@/components/auth/FormAlert";
@@ -8,6 +8,8 @@ import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import AddMemberForm from "@/components/members/AddMemberForm";
 import MemberRow from "@/components/members/MemberRow";
 import useAuth from "@/hooks/useAuth";
+import useCoalescedReload from "@/hooks/useCoalescedReload";
+import useLiveEvents from "@/hooks/useLiveEvents";
 import useWorkspace from "@/hooks/useWorkspace";
 import {
   listMembersRequest,
@@ -35,6 +37,9 @@ export default function MembersPanel() {
   const [rowError, setRowError] = useState("");
   const [changingId, setChangingId] = useState(null);
 
+  // True while a background (live) refresh is running: if it fails, the list stays.
+  const quietRef = useRef(false);
+
   const [pendingRemoval, setPendingRemoval] = useState(null);
   const [removing, setRemoving] = useState(false);
   const [removeError, setRemoveError] = useState("");
@@ -47,10 +52,17 @@ export default function MembersPanel() {
 
     listMembersRequest(workspace.id)
       .then((data) => {
-        if (!cancelled) setState({ status: "ready", members: sortMembers(data.members), error: "" });
+        if (cancelled) return;
+        quietRef.current = false;
+        setState({ status: "ready", members: sortMembers(data.members), error: "" });
       })
       .catch((error) => {
-        if (!cancelled) setState({ status: "error", members: [], error: error.message });
+        if (cancelled) return;
+        setState((current) =>
+          quietRef.current && current.status === "ready"
+            ? current
+            : { status: "error", members: [], error: error.message }
+        );
       });
 
     return () => {
@@ -58,7 +70,24 @@ export default function MembersPanel() {
     };
   }, [workspace.id, attempt]);
 
+  // Live: when people are added, removed or change role, ask the server for the list
+  // again. (The member count in the header is kept right by the workspace itself.)
+  const liveReload = useCoalescedReload(() => {
+    quietRef.current = true;
+    setAttempt((n) => n + 1);
+  });
+  const isThis = (payload) => payload?.workspaceId === workspace.id;
+
+  useLiveEvents({
+    "member:added": (payload) => isThis(payload) && liveReload(),
+    "member:updated": (payload) => isThis(payload) && liveReload(),
+    "member:removed": (payload) => isThis(payload) && liveReload(),
+    // We were offline for a while, so events may have been missed.
+    "connection:restored": () => liveReload(),
+  });
+
   function retry() {
+    quietRef.current = false;
     setState({ status: "loading", members: [], error: "" });
     setAttempt((n) => n + 1);
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FileText, Loader2, Plus, Search, SearchX, X } from "lucide-react";
 import PageHeading from "@/components/app/PageHeading";
@@ -10,7 +10,9 @@ import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { EmptyHint } from "@/components/dashboard/DashboardCard";
 import DocumentRow from "@/components/documents/DocumentRow";
 import useAuth from "@/hooks/useAuth";
+import useCoalescedReload from "@/hooks/useCoalescedReload";
 import useDebounce from "@/hooks/useDebounce";
+import useLiveEvents from "@/hooks/useLiveEvents";
 import useWorkspace from "@/hooks/useWorkspace";
 import {
   createDocumentRequest,
@@ -33,6 +35,9 @@ export default function DocumentsPanel() {
   const [attempt, setAttempt] = useState(0);
   const [notice, setNotice] = useState("");
 
+  // True while a background (live) refresh is running: if it fails, the list stays.
+  const quietRef = useRef(false);
+
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState("");
 
@@ -47,14 +52,17 @@ export default function DocumentsPanel() {
 
     listDocumentsRequest(workspace.id, debouncedQuery)
       .then((data) => {
-        if (!cancelled) {
-          setState({ status: "ready", documents: data.documents, error: "", query: debouncedQuery });
-        }
+        if (cancelled) return;
+        quietRef.current = false;
+        setState({ status: "ready", documents: data.documents, error: "", query: debouncedQuery });
       })
       .catch((error) => {
-        if (!cancelled) {
-          setState({ status: "error", documents: [], error: error.message, query: debouncedQuery });
-        }
+        if (cancelled) return;
+        setState((current) =>
+          quietRef.current && current.status === "ready" && current.query === debouncedQuery
+            ? current
+            : { status: "error", documents: [], error: error.message, query: debouncedQuery }
+        );
       });
 
     return () => {
@@ -62,10 +70,28 @@ export default function DocumentsPanel() {
     };
   }, [workspace.id, debouncedQuery, attempt]);
 
+  // Live: when a teammate creates, edits or deletes a document, refresh the list.
+  // Autosave sends an event every couple of seconds while someone types, so a
+  // burst is merged into one refresh. Your current search is kept.
+  const liveReload = useCoalescedReload(() => {
+    quietRef.current = true;
+    setAttempt((n) => n + 1);
+  }, false, 400);
+  const isThis = (payload) => payload?.workspaceId === workspace.id;
+
+  useLiveEvents({
+    "document:created": (payload) => isThis(payload) && liveReload(),
+    "document:updated": (payload) => isThis(payload) && liveReload(),
+    "document:deleted": (payload) => isThis(payload) && liveReload(),
+    // We were offline for a while, so events may have been missed.
+    "connection:restored": () => liveReload(),
+  });
+
   // The list on screen is out of date while you're typing or a search is loading.
   const refreshing = state.status === "ready" && state.query !== typedQuery;
 
   function retry() {
+    quietRef.current = false;
     setState((current) => ({ ...current, status: "loading", error: "" }));
     setAttempt((n) => n + 1);
   }

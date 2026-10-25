@@ -56,17 +56,24 @@ export default function DashboardOverview() {
   const [snippetDialog, setSnippetDialog] = useState(null); // { mode: "form" }, { mode: "view", id }, or null
   const [notice, setNotice] = useState("");
 
-  // Live: when a teammate changes a task, refresh the three task cards together
-  // (one merged reload for a burst of events). Documents and snippets follow in the next step.
+  // ----- Live updates -----
+  // When a teammate changes something, the matching cards refresh by themselves. Each
+  // kind of change has its own merged reload. The Team card and the member count keep
+  // themselves up to date.
   const { reload: reloadStats } = stats;
   const { reload: reloadAssigned } = assigned;
   const { reload: reloadRecentTasks } = recentTasks;
+  const { reload: reloadSnippets } = snippets;
+  const { reload: reloadRecentDocs } = recentDocs;
 
   const liveTaskReload = useCoalescedReload(() => {
     reloadStats();
     reloadAssigned();
     reloadRecentTasks();
   });
+  const liveDocumentReload = useCoalescedReload(reloadRecentDocs, false, 400);
+  const liveSnippetReload = useCoalescedReload(reloadSnippets, false, 300);
+
   const isThis = (payload) => payload?.workspaceId === workspace.id;
 
   useLiveEvents({
@@ -75,8 +82,18 @@ export default function DashboardOverview() {
     "task:moved": (payload) => isThis(payload) && liveTaskReload(),
     "task:deleted": (payload) => isThis(payload) && liveTaskReload(),
     "tasks:refresh": (payload) => isThis(payload) && liveTaskReload(),
-    // We were offline for a while, so events may have been missed.
-    "connection:restored": () => liveTaskReload(),
+    "document:created": (payload) => isThis(payload) && liveDocumentReload(),
+    "document:updated": (payload) => isThis(payload) && liveDocumentReload(),
+    "document:deleted": (payload) => isThis(payload) && liveDocumentReload(),
+    "snippet:created": (payload) => isThis(payload) && liveSnippetReload(),
+    "snippet:updated": (payload) => isThis(payload) && liveSnippetReload(),
+    "snippet:deleted": (payload) => isThis(payload) && liveSnippetReload(),
+    // We were offline for a while, so events may have been missed: refresh everything.
+    "connection:restored": () => {
+      liveTaskReload();
+      liveDocumentReload();
+      liveSnippetReload();
+    },
   });
 
   function openNewTask() {
