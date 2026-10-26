@@ -19,11 +19,10 @@ const AUTH_ERRORS = new Set([
 // The live connection. It opens while you're signed in and closes when you sign out.
 //   status:   "connecting" (the first time) | "connected" | "disconnected"
 //   joined:   the ids of the workspaces whose room this tab is in right now
-//   presence: who's online, per workspace: { [workspaceId]: [{ id, name, editing }] }
+//   presence: who's online, per workspace: { [workspaceId]: [{ id, name, editing: [documentId] }] }
 //   subscribe(event, handler): listen for an event; returns a function that stops listening
 //   joinWorkspace(id): hear about a workspace; returns a function that stops
-//   focusDocument(workspaceId, documentId) / blurDocument(workspaceId):
-//     "I'm editing this document" / "I stopped" (information for teammates, not a lock)
+//   focusDocument(workspaceId, documentId) / blurDocument(workspaceId): "I'm editing this" / "I stopped"
 //
 // Besides the server's events, it announces one of its own:
 //   "connection:restored"  the connection came back after a drop, so anything could have
@@ -62,9 +61,9 @@ export function RealtimeProvider({ children }) {
 
         if (!error && reply?.ok) {
           setJoined((list) => (list.includes(workspaceId) ? list : [...list, workspaceId]));
-          // The reply says who's online right now.
+          // The reply says who is online right now.
           if (Array.isArray(reply.presence)) {
-            setPresence((all) => ({ ...all, [workspaceId]: reply.presence }));
+            setPresence((current) => ({ ...current, [workspaceId]: reply.presence }));
           }
           return;
         }
@@ -121,7 +120,7 @@ export function RealtimeProvider({ children }) {
       setStatus("disconnected");
       setSocketId(null);
       setJoined([]);
-      setPresence({}); // we can't know who's online while we're away
+      setPresence({}); // while we can't hear the server, we don't know who's online
 
       // The server closed the connection (for example, because the login expired).
       // Reconnecting checks the login again: still good, we're back; not good, we're signed out.
@@ -143,14 +142,13 @@ export function RealtimeProvider({ children }) {
       if (!socket.active) later(() => socket.connect(), 5000);
     });
 
-    // The server sends the WHOLE list of who's online each time, so we simply replace our copy.
-    socket.on("presence:update", (payload) => {
-      if (!payload?.workspaceId || !Array.isArray(payload.users)) return;
-      if (!roomsRef.current.has(payload.workspaceId)) return;
-      setPresence((all) => ({ ...all, [payload.workspaceId]: payload.users }));
+    socket.onAny((event, payload) => {
+      // Who's online changed.
+      if (event === "presence:update" && payload?.workspaceId) {
+        setPresence((current) => ({ ...current, [payload.workspaceId]: payload.users ?? [] }));
+      }
+      dispatch(event, payload);
     });
-
-    socket.onAny((event, payload) => dispatch(event, payload));
 
     return () => {
       stopped = true;
@@ -192,8 +190,8 @@ export function RealtimeProvider({ children }) {
         // If we're offline the server has already forgotten the room.
         if (socket?.connected) socket.emit("workspace:leave", workspaceId);
         setJoined((list) => list.filter((id) => id !== workspaceId));
-        setPresence((all) => {
-          const next = { ...all };
+        setPresence((current) => {
+          const next = { ...current };
           delete next[workspaceId];
           return next;
         });
@@ -202,8 +200,8 @@ export function RealtimeProvider({ children }) {
     [requestJoin]
   );
 
-  // "I'm editing this document" and "I stopped". Nothing is locked: it only lets
-  // teammates see it coming. If we're offline there's nothing to say.
+  // "I'm editing this document" and "I stopped". The server checks the person really
+  // is in the workspace, and that the document exists there.
   const focusDocument = useCallback((workspaceId, documentId) => {
     const socket = socketRef.current;
     if (socket?.connected) socket.emit("document:focus", { workspaceId, documentId });

@@ -1697,3 +1697,82 @@ button.tag-chip:hover {
   white-space: pre;
   overflow: auto;
 }
+/* ---------- Presence ---------- */
+
+/* An avatar with room for a status dot on its corner */
+.presence-avatar {
+  position: relative;
+  display: inline-grid;
+  flex: none;
+}
+
+.presence-dot {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  background: var(--color-success);
+  /* A thin dark ring keeps the dot readable on any background */
+  box-shadow: 0 0 0 2px rgb(9 8 12 / 0.95);
+}
+.presence-avatar .avatar-sm ~ .presence-dot {
+  width: 8px;
+  height: 8px;
+}
+
+/* The overlapping row of online people in the sidebar */
+.presence-stack {
+  display: flex;
+  align-items: center;
+  margin-top: 8px;
+  padding-left: 8px;
+}
+.presence-stack > li + li {
+  margin-left: -8px;
+}
+.presence-stack .avatar {
+  box-shadow: 0 0 0 2px rgb(9 8 12 / 0.95);
+}
+.presence-more {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  background: rgb(255 255 255 / 0.12);
+  box-shadow: 0 0 0 2px rgb(9 8 12 / 0.95);
+  font-size: 11px;
+  color: var(--color-fg-2);
+}
+
+/* "Rahul is editing" */
+.editing-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 2px 8px;
+  border-radius: var(--radius-chip);
+  background: rgb(239 106 69 / 0.15);
+  color: var(--color-ember-300);
+  font-size: 12px;
+}
+.editing-dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--color-ember-500);
+  animation: editing-pulse 1.8s ease-in-out infinite;
+}
+@keyframes editing-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}

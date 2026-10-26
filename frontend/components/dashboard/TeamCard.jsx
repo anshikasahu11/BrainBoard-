@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import PresenceAvatar from "@/components/app/PresenceAvatar";
 import DashboardCard from "@/components/dashboard/DashboardCard";
 import FormAlert from "@/components/auth/FormAlert";
 import RoleBadge from "@/components/workspaces/RoleBadge";
 import useCoalescedReload from "@/hooks/useCoalescedReload";
 import useLiveEvents from "@/hooks/useLiveEvents";
+import usePresence from "@/hooks/usePresence";
 import useWorkspace from "@/hooks/useWorkspace";
 import { listMembersRequest } from "@/services/memberService";
 
@@ -13,6 +15,7 @@ const SHOW = 5;
 
 export default function TeamCard() {
   const { workspace } = useWorkspace();
+  const { isOnline } = usePresence(workspace.id);
   const [state, setState] = useState({ status: "loading", members: [], error: "" });
   const [attempt, setAttempt] = useState(0);
 
@@ -101,9 +104,7 @@ export default function TeamCard() {
                 key={member.id}
                 className="flex items-center gap-3 border-t border-line py-2.5 first:border-t-0 first:pt-0"
               >
-                <span className="avatar" aria-hidden="true">
-                  {member.name.charAt(0).toUpperCase()}
-                </span>
+                <PresenceAvatar name={member.name} online={isOnline(member.id)} />
                 <span className="min-w-0 flex-1 truncate text-[14px]">{member.name}</span>
                 <RoleBadge role={member.role} />
               </li>

@@ -8,10 +8,15 @@ import { TaskItem, TaskList } from "@tiptap/extension-list";
 import { AlertCircle, ArrowLeft } from "lucide-react";
 import Reveal from "@/components/Reveal";
 import FormAlert from "@/components/auth/FormAlert";
+import EditingNow from "@/components/documents/EditingNow";
 import Toolbar from "@/components/documents/Toolbar";
 import SaveIndicator from "@/components/documents/SaveIndicator";
+import useAuth from "@/hooks/useAuth";
+import useEditingPresence from "@/hooks/useEditingPresence";
+import useLiveEvents from "@/hooks/useLiveEvents";
+import usePresence from "@/hooks/usePresence";
 import useWorkspace from "@/hooks/useWorkspace";
-import { updateDocumentRequest } from "@/services/documentService";
+import { getDocumentRequest, updateDocumentRequest } from "@/services/documentService";
 import { formatDate, formatRelative } from "@/lib/format";
 
 const AUTOSAVE_DELAY = 1500; // ms after the last keystroke
@@ -22,6 +27,7 @@ const RETRY_DELAY = 5000; // after a network failure
 // onReload: loads the latest version from the server (discarding local edits).
 export default function DocumentEditor({ initialDoc, onReload }) {
   const { workspace } = useWorkspace();
+  const { user } = useAuth();
   const workspaceId = workspace.id;
   const docId = initialDoc.id;
 
@@ -31,6 +37,8 @@ export default function DocumentEditor({ initialDoc, onReload }) {
   const [conflict, setConflict] = useState(null); // { currentRevision } while a conflict is open
   const [gone, setGone] = useState(false); // the document was deleted by someone else
   const [isEmpty, setIsEmpty] = useState(false);
+  const [revision, setRevision] = useState(initialDoc.revision); // the revision this editor is based on
+  const [stale, setStale] = useState(null); // { revision, by, byMe } when a newer version exists
   const [meta, setMeta] = useState({
     updatedAt: initialDoc.updatedAt,
     editor: initialDoc.lastEditedBy.name,
@@ -55,6 +63,11 @@ export default function DocumentEditor({ initialDoc, onReload }) {
     max: null,
     retry: null,
   });
+
+  // Tell teammates this document is open here (and stop when it's gone).
+  useEditingPresence(workspaceId, gone ? null : docId);
+  const { editorsOf } = usePresence(workspaceId);
+  const alsoHere = editorsOf(docId);
 
   const clearTimers = useCallback(() => {
     const state = s.current;
@@ -114,6 +127,7 @@ export default function DocumentEditor({ initialDoc, onReload }) {
 
       state.revision = saved.revision;
       state.savedTitle = saved.title;
+      setRevision(saved.revision);
       // Only mark clean if nothing changed while the request was in flight.
       if (titleChanged && state.versions.title === sent.title) state.dirty.title = false;
       if (contentChanged && state.versions.content === sent.content) state.dirty.content = false;
@@ -251,6 +265,56 @@ export default function DocumentEditor({ initialDoc, onReload }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ----- Live: what teammates do to THIS document -----
+
+  // The document was deleted by someone else. Stop saving, and say so right away.
+  function markGone() {
+    const state = s.current;
+    state.blocked = true;
+    clearTimers();
+    setGone(true);
+    setSaveError("This document was deleted, so your latest changes can't be saved.");
+    setStatus("error");
+  }
+
+  // A newer version exists on the server than the one this editor is based on.
+  function noteNewer(incoming) {
+    setStale((current) =>
+      current && current.revision >= incoming.revision
+        ? current
+        : {
+            revision: incoming.revision,
+            by: incoming.lastEditedBy?.name ?? "Someone",
+            byMe: incoming.lastEditedBy?.id === user.id,
+          }
+    );
+  }
+
+  // After a reconnect we may have missed events: check this document against the server.
+  async function checkAgainstServer() {
+    try {
+      const { document: latest } = await getDocumentRequest(workspaceId, docId);
+      if (latest.revision > s.current.revision) noteNewer(latest);
+    } catch (error) {
+      if (error.status === 404) markGone();
+    }
+  }
+
+  useLiveEvents({
+    "document:updated": (payload) => {
+      const incoming = payload?.document;
+      if (payload?.workspaceId !== workspaceId || incoming?.id !== docId) return;
+      // Only a save we didn't make ourselves can be newer than what we have.
+      if (incoming.revision > s.current.revision) noteNewer(incoming);
+    },
+    "document:deleted": (payload) => {
+      if (payload?.workspaceId === workspaceId && payload?.documentId === docId) markGone();
+    },
+    "connection:restored": () => {
+      checkAgainstServer();
+    },
+  });
+
   function handleTitleChange(event) {
     const value = event.target.value;
     setTitle(value);
@@ -283,12 +347,15 @@ export default function DocumentEditor({ initialDoc, onReload }) {
     }
     const state = s.current;
     state.revision = conflict.currentRevision;
+    setRevision(conflict.currentRevision);
     state.blocked = false;
     setConflict(null);
     save();
   }
 
-  const indicator = conflict ? "conflict" : status;
+  const indicator = gone ? "gone" : conflict ? "conflict" : status;
+  const hasUnsaved = status === "unsaved" || status === "saving";
+  const showStale = Boolean(stale) && stale.revision > revision && !conflict && !gone;
 
   return (
     <Reveal level="subtle">
@@ -301,8 +368,52 @@ export default function DocumentEditor({ initialDoc, onReload }) {
             <ArrowLeft size={14} strokeWidth={1.5} aria-hidden="true" />
             All documents
           </Link>
-          <SaveIndicator status={indicator} onRetry={status === "error" && !gone ? save : undefined} />
+
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            {/* Announced politely when a teammate opens or leaves this document. */}
+            <div role="status" aria-live="polite">
+              <EditingNow people={alsoHere} also />
+            </div>
+            <SaveIndicator
+              status={indicator}
+              onRetry={status === "error" && !gone ? save : undefined}
+            />
+          </div>
         </div>
+
+        {showStale && (
+          <div role="alert" className="banner-warn mb-6">
+            <AlertCircle size={18} strokeWidth={1.75} className="mt-0.5 shrink-0 text-amber" aria-hidden="true" />
+            <div className="min-w-0">
+              <p className="text-[14px] font-medium">
+                {stale.byMe
+                  ? "You saved a newer version in another tab or window."
+                  : `${stale.by} saved a newer version.`}
+              </p>
+              <p className="mt-1 text-[13px] leading-relaxed text-fg-2">
+                {hasUnsaved
+                  ? "You have unsaved changes here. Loading the latest version discards them. If you keep editing and save, you’ll be asked which version to keep."
+                  : "Load it to see their changes before you edit."}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={onReload}
+                  className="btn-primary inline-flex items-center rounded-control px-4 py-2 text-[13px]"
+                >
+                  Load latest version
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStale(null)}
+                  className="btn-ghost inline-flex items-center rounded-control px-4 py-2 text-[13px]"
+                >
+                  Keep editing
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {conflict && (
           <div role="alert" className="banner-warn mb-6">

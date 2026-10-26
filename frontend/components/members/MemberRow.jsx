@@ -1,5 +1,10 @@
+"use client";
+
 import { UserMinus } from "lucide-react";
+import PresenceAvatar from "@/components/app/PresenceAvatar";
 import RoleBadge from "@/components/workspaces/RoleBadge";
+import usePresence from "@/hooks/usePresence";
+import useWorkspace from "@/hooks/useWorkspace";
 import { ROLE_LABELS } from "@/lib/permissions";
 import { formatDate } from "@/lib/format";
 
@@ -7,11 +12,12 @@ import { formatDate } from "@/lib/format";
 // roleOptions: roles the viewer may switch this person to, or null for a plain badge.
 // onRemove: provided only when the viewer is allowed to remove this person.
 export default function MemberRow({ member, isSelf, roleOptions, busy, onRoleChange, onRemove }) {
+  const { workspace } = useWorkspace();
+  const { isOnline } = usePresence(workspace.id);
+
   return (
     <li className="flex flex-wrap items-center gap-x-4 gap-y-3 border-t border-line py-4 first:border-t-0 first:pt-0 last:pb-0">
-      <span className="avatar" aria-hidden="true">
-        {member.name.charAt(0).toUpperCase()}
-      </span>
+      <PresenceAvatar name={member.name} online={isOnline(member.id)} />
 
       <div className="min-w-0 flex-1 basis-48">
         <p className="flex items-center gap-2 truncate text-[14px]">

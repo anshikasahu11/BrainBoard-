@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { Trash2 } from "lucide-react";
+import EditingNow from "@/components/documents/EditingNow";
 import { formatRelative } from "@/lib/format";
 
 // One document in the list. onDelete is passed only when the viewer may delete it.
-export default function DocumentRow({ doc, href, onDelete }) {
+// editors: the other people who have this document open right now.
+export default function DocumentRow({ doc, href, onDelete, editors = [] }) {
   return (
     <li className="doc-row">
       <Link href={href} className="doc-link">
@@ -20,6 +22,12 @@ export default function DocumentRow({ doc, href, onDelete }) {
         <span className="mt-2.5 block truncate font-mono text-[11px] uppercase tracking-[0.08em] text-fg-muted">
           Edited {formatRelative(doc.updatedAt)} · {doc.lastEditedBy.name}
         </span>
+
+        {editors.length > 0 && (
+          <span className="mt-2 block">
+            <EditingNow people={editors} />
+          </span>
+        )}
       </Link>
 
       {onDelete && (

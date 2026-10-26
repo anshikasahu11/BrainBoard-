@@ -6,6 +6,7 @@ const VIEWS = {
   saving: { text: "Saving…", icon: Loader2, tone: "text-fg-2", spin: true },
   error: { text: "Not saved", icon: AlertCircle, tone: "text-danger" },
   conflict: { text: "Not saved · conflict", icon: AlertCircle, tone: "text-danger" },
+  gone: { text: "Deleted", icon: AlertCircle, tone: "text-danger" },
 };
 
 // Shows where your changes are. Routine states (saving, saved) stay silent for
@@ -13,7 +14,7 @@ const VIEWS = {
 export default function SaveIndicator({ status, onRetry }) {
   const view = VIEWS[status] ?? VIEWS.saved;
   const Icon = view.icon;
-  const problem = status === "error" || status === "conflict";
+  const problem = status === "error" || status === "conflict" || status === "gone";
 
   return (
     <div className="flex items-center gap-3">

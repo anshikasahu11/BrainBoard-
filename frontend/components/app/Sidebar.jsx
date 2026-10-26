@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
 import Logo from "@/components/Logo";
 import LiveIndicator from "@/components/app/LiveIndicator";
+import OnlineAvatars from "@/components/app/OnlineAvatars";
 import WorkspaceSwitcher from "@/components/app/WorkspaceSwitcher";
 import { NAV_ITEMS } from "@/components/app/navItems";
 import useAuth from "@/hooks/useAuth";
@@ -77,6 +78,7 @@ export default function Sidebar({ onNavigate }) {
       <div className="space-y-3">
         <WorkspaceSwitcher onNavigate={onNavigate} />
         <LiveIndicator />
+        <OnlineAvatars />
       </div>
 
       <nav aria-label="Workspace" className="flex-1 space-y-6">

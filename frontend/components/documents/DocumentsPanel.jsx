@@ -13,6 +13,7 @@ import useAuth from "@/hooks/useAuth";
 import useCoalescedReload from "@/hooks/useCoalescedReload";
 import useDebounce from "@/hooks/useDebounce";
 import useLiveEvents from "@/hooks/useLiveEvents";
+import usePresence from "@/hooks/usePresence";
 import useWorkspace from "@/hooks/useWorkspace";
 import {
   createDocumentRequest,
@@ -25,6 +26,7 @@ export default function DocumentsPanel() {
   const { workspace, role } = useWorkspace();
   const { user } = useAuth();
   const router = useRouter();
+  const { editorsOf } = usePresence(workspace.id);
 
   const [query, setQuery] = useState("");
   const typedQuery = query.trim();
@@ -289,6 +291,7 @@ export default function DocumentsPanel() {
                 key={doc.id}
                 doc={doc}
                 href={`/workspaces/${workspace.id}/documents/${doc.id}`}
+                editors={editorsOf(doc.id)}
                 onDelete={
                   canDeleteDocument(role, doc, user.id)
                     ? (target) => {
