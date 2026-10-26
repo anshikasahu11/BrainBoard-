@@ -1,6 +1,7 @@
 import Workspace from "../models/Workspace.js";
 import Membership from "../models/Membership.js";
 import Document from "../models/Document.js";
+import DocumentVersion from "../models/DocumentVersion.js";
 import Task from "../models/Task.js";
 import Snippet from "../models/Snippet.js";
 
@@ -12,6 +13,7 @@ export async function deleteWorkspaceCascade(workspaceId) {
   await Workspace.findByIdAndDelete(workspaceId);
   await Membership.deleteMany({ workspace: workspaceId });
   await Document.deleteMany({ workspace: workspaceId });
+  await DocumentVersion.deleteMany({ workspace: workspaceId });
   await Task.deleteMany({ workspace: workspaceId });
   await Snippet.deleteMany({ workspace: workspaceId });
 }

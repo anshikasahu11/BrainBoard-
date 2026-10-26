@@ -6,6 +6,7 @@ import {
   updateDocument,
   deleteDocument,
 } from "../controllers/documentController.js";
+import versionRoutes from "./versionRoutes.js";
 import { validate } from "../middleware/validate.js";
 import { createDocumentSchema, updateDocumentSchema } from "../validators/documentValidators.js";
 
@@ -15,6 +16,9 @@ import { createDocumentSchema, updateDocumentSchema } from "../validators/docume
 const router = Router({ mergeParams: true });
 
 router.route("/").get(listDocuments).post(validate(createDocumentSchema), createDocument);
+
+// A document's version history lives under it.
+router.use("/:documentId/versions", versionRoutes);
 
 router
   .route("/:documentId")

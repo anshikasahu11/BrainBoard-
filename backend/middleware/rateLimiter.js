@@ -18,3 +18,12 @@ export const inviteLimiter = rateLimit({
   legacyHeaders: false,
   message: { message: "Too many invitations. Please try again later." },
 });
+
+// A named version stores a whole copy of the document, so don't allow them in floods.
+export const versionLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 60,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { message: "Too many versions saved. Please try again later." },
+});

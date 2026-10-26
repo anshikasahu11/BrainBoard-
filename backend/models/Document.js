@@ -16,6 +16,10 @@ const documentSchema = new mongoose.Schema(
     // Goes up by one on every save. Used to detect edit conflicts.
     revision: { type: Number, default: 0, min: 0 },
 
+    // Hands out version numbers (1, 2, 3...) for this document's history.
+    // It only ever goes up, so a deleted version's number is never reused.
+    versionCounter: { type: Number, default: 0, min: 0 },
+
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     lastEditedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   },

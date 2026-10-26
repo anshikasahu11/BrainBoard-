@@ -1,4 +1,5 @@
 import Document from "../models/Document.js";
+import DocumentVersion from "../models/DocumentVersion.js";
 import AppError from "../utils/AppError.js";
 import { isObjectId } from "../utils/objectId.js";
 import { escapeRegex } from "../utils/escapeRegex.js";
@@ -10,6 +11,7 @@ import {
   toDocumentDTO,
   toListItemDTO,
 } from "../services/documentService.js";
+import { preserveQuietly, snapshotDue } from "../services/versionService.js";
 
 const POPULATE = [
   { path: "createdBy", select: "name" },
@@ -85,6 +87,14 @@ export async function updateDocument(req, res) {
     changes.excerpt = cleaned.excerpt;
   }
 
+  // Version history: now and then (see AUTO_INTERVAL_MS), keep the document as it is
+  // right now, BEFORE this save replaces it. We only read it when a version is due, so
+  // a normal autosave costs one cheap lookup.
+  let before = null;
+  if (await snapshotDue(filter._id)) {
+    before = await Document.findOne({ ...filter, revision: baseRevision }).select("+plainText");
+  }
+
   // One atomic step: apply the change ONLY IF the revision still matches.
   // Two saves can never both succeed from the same starting point.
   const updated = await Document.findOneAndUpdate(
@@ -104,10 +114,12 @@ export async function updateDocument(req, res) {
     );
   }
 
+  // The save went through, so now keep the earlier state. This never fails the request.
+  if (before) await preserveQuietly(before);
+
   // The new revision tells anyone who has this document open that theirs is out of date.
   announce(req, "document:updated", { document: toListItemDTO(updated) });
 
-  // Phase 9: snapshot a version.
   res.json({ document: toDocumentDTO(updated) });
 }
 
@@ -123,6 +135,8 @@ export async function deleteDocument(req, res) {
   }
 
   await doc.deleteOne();
+  // Its history goes with it.
+  await DocumentVersion.deleteMany({ document: doc._id });
 
   announce(req, "document:deleted", { documentId: doc.id });
 
