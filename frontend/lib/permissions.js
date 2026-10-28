@@ -42,3 +42,7 @@ export function canDeleteSnippet(role, snippet, userId) {
   if (role === "owner" || role === "admin") return true;
   return snippet.createdBy?.id === userId;
 }
+
+// Removing a single saved version is an admin power (for example, to take out an
+// accidentally pasted secret).
+export const canDeleteVersion = (role) => role === "owner" || role === "admin";

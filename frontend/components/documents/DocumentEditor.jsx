@@ -3,30 +3,34 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { EditorContent, useEditor } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import { TaskItem, TaskList } from "@tiptap/extension-list";
-import { AlertCircle, ArrowLeft } from "lucide-react";
+import { AlertCircle, ArrowLeft, History } from "lucide-react";
 import Reveal from "@/components/Reveal";
 import FormAlert from "@/components/auth/FormAlert";
 import EditingNow from "@/components/documents/EditingNow";
 import Toolbar from "@/components/documents/Toolbar";
 import SaveIndicator from "@/components/documents/SaveIndicator";
+import HistoryController from "@/components/documents/history/HistoryController";
 import useAuth from "@/hooks/useAuth";
 import useEditingPresence from "@/hooks/useEditingPresence";
 import useLiveEvents from "@/hooks/useLiveEvents";
 import usePresence from "@/hooks/usePresence";
 import useWorkspace from "@/hooks/useWorkspace";
 import { getDocumentRequest, updateDocumentRequest } from "@/services/documentService";
+import { createEditorExtensions } from "@/lib/editorExtensions";
 import { formatDate, formatRelative } from "@/lib/format";
 
 const AUTOSAVE_DELAY = 1500; // ms after the last keystroke
 const MAX_WAIT = 10000; // while typing without pause, save at least this often
 const RETRY_DELAY = 5000; // after a network failure
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 // initialDoc: the document as loaded from the API.
 // onReload: loads the latest version from the server (discarding local edits).
-export default function DocumentEditor({ initialDoc, onReload }) {
-  const { workspace } = useWorkspace();
+//           It can take a message, which is shown here after the reload.
+// initialNotice: a message to show at the top for a few seconds (for example, after a restore).
+export default function DocumentEditor({ initialDoc, initialNotice = "", onReload }) {
+  const { workspace, role } = useWorkspace();
   const { user } = useAuth();
   const workspaceId = workspace.id;
   const docId = initialDoc.id;
@@ -39,6 +43,8 @@ export default function DocumentEditor({ initialDoc, onReload }) {
   const [isEmpty, setIsEmpty] = useState(false);
   const [revision, setRevision] = useState(initialDoc.revision); // the revision this editor is based on
   const [stale, setStale] = useState(null); // { revision, by, byMe } when a newer version exists
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [notice, setNotice] = useState(initialNotice);
   const [meta, setMeta] = useState({
     updatedAt: initialDoc.updatedAt,
     editor: initialDoc.lastEditedBy.name,
@@ -68,6 +74,13 @@ export default function DocumentEditor({ initialDoc, onReload }) {
   useEditingPresence(workspaceId, gone ? null : docId);
   const { editorsOf } = usePresence(workspaceId);
   const alsoHere = editorsOf(docId);
+
+  // A message after a restore shows for a few seconds, then goes.
+  useEffect(() => {
+    if (!notice) return;
+    const timer = setTimeout(() => setNotice(""), 8000);
+    return () => clearTimeout(timer);
+  }, [notice]);
 
   const clearTimers = useCallback(() => {
     const state = s.current;
@@ -188,16 +201,7 @@ export default function DocumentEditor({ initialDoc, onReload }) {
   const editor = useEditor({
     // Tiptap must not render on the server (it would mismatch the browser).
     immediatelyRender: false,
-    extensions: [
-      // Only the formats the server accepts: headings 1 to 3, lists, quotes,
-      // code, links... plus checklists below.
-      StarterKit.configure({
-        heading: { levels: [1, 2, 3] },
-        link: { openOnClick: false, autolink: true, defaultProtocol: "https" },
-      }),
-      TaskList,
-      TaskItem.configure({ nested: true }),
-    ],
+    extensions: createEditorExtensions(),
     content: initialDoc.content,
     editorProps: {
       attributes: { "aria-label": "Document content" },
@@ -273,6 +277,7 @@ export default function DocumentEditor({ initialDoc, onReload }) {
     state.blocked = true;
     clearTimers();
     setGone(true);
+    setHistoryOpen(false);
     setSaveError("This document was deleted, so your latest changes can't be saved.");
     setStatus("error");
   }
@@ -353,141 +358,214 @@ export default function DocumentEditor({ initialDoc, onReload }) {
     save();
   }
 
+  // ----- Version history -----
+
+  // Saves anything typed but not yet sent, and waits for it. Saving a version or restoring
+  // works from what the SERVER holds, so this runs first. Resolves true when nothing
+  // is left unsaved, or false if it couldn't be saved (offline, a conflict...).
+  async function flushSaves() {
+    const state = s.current;
+
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      // Wait for a save that's already running.
+      for (let i = 0; i < 100 && state.saving; i += 1) await sleep(80);
+
+      if (state.blocked) return false;
+
+      // A blank title can never be saved, so it isn't "pending" in any useful sense.
+      const waitingOnTitle = state.dirty.title && state.title.trim() === "" && !state.dirty.content;
+      if ((!state.dirty.title && !state.dirty.content) || waitingOnTitle) return true;
+
+      await saveRef.current?.();
+    }
+
+    const blankTitleOnly = state.title.trim() === "" && !state.dirty.content;
+    return !state.dirty.content && (!state.dirty.title || blankTitleOnly);
+  }
+
   const indicator = gone ? "gone" : conflict ? "conflict" : status;
   const hasUnsaved = status === "unsaved" || status === "saving";
   const showStale = Boolean(stale) && stale.revision > revision && !conflict && !gone;
 
+  // Why restoring a version isn't possible right now (or null if it is).
+  const restoreBlocked = gone
+    ? "This document was deleted."
+    : conflict
+      ? "Resolve the save conflict first: load the latest version or save yours."
+      : showStale
+        ? "A newer version of this document was saved. Load it first, then restore."
+        : null;
+
   return (
-    <Reveal level="subtle">
-      <div>
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-          <Link
-            href={`/workspaces/${workspaceId}/documents`}
-            className="inline-flex items-center gap-2 text-[13px] text-fg-2 transition-colors hover:text-ember-300"
+    <>
+      <Reveal level="subtle">
+        <div>
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+            <Link
+              href={`/workspaces/${workspaceId}/documents`}
+              className="inline-flex items-center gap-2 text-[13px] text-fg-2 transition-colors hover:text-ember-300"
+            >
+              <ArrowLeft size={14} strokeWidth={1.5} aria-hidden="true" />
+              All documents
+            </Link>
+
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              {/* Announced politely when a teammate opens or leaves this document. */}
+              <div role="status" aria-live="polite">
+                <EditingNow people={alsoHere} also />
+              </div>
+              <SaveIndicator
+                status={indicator}
+                onRetry={status === "error" && !gone ? save : undefined}
+              />
+              {!gone && (
+                <button
+                  type="button"
+                  onClick={() => setHistoryOpen(true)}
+                  aria-haspopup="dialog"
+                  className="btn-ghost inline-flex items-center gap-2 rounded-control px-3 py-1.5 text-[13px]"
+                >
+                  <History size={14} strokeWidth={1.5} aria-hidden="true" />
+                  History
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Announced politely, for example after a restore. */}
+          <p
+            role="status"
+            aria-live="polite"
+            className={notice ? "mb-4 text-[13px] text-success" : "sr-only"}
           >
-            <ArrowLeft size={14} strokeWidth={1.5} aria-hidden="true" />
-            All documents
-          </Link>
+            {notice}
+          </p>
 
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            {/* Announced politely when a teammate opens or leaves this document. */}
-            <div role="status" aria-live="polite">
-              <EditingNow people={alsoHere} also />
-            </div>
-            <SaveIndicator
-              status={indicator}
-              onRetry={status === "error" && !gone ? save : undefined}
-            />
-          </div>
-        </div>
-
-        {showStale && (
-          <div role="alert" className="banner-warn mb-6">
-            <AlertCircle size={18} strokeWidth={1.75} className="mt-0.5 shrink-0 text-amber" aria-hidden="true" />
-            <div className="min-w-0">
-              <p className="text-[14px] font-medium">
-                {stale.byMe
-                  ? "You saved a newer version in another tab or window."
-                  : `${stale.by} saved a newer version.`}
-              </p>
-              <p className="mt-1 text-[13px] leading-relaxed text-fg-2">
-                {hasUnsaved
-                  ? "You have unsaved changes here. Loading the latest version discards them. If you keep editing and save, you’ll be asked which version to keep."
-                  : "Load it to see their changes before you edit."}
-              </p>
-              <div className="mt-3 flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={onReload}
-                  className="btn-primary inline-flex items-center rounded-control px-4 py-2 text-[13px]"
-                >
-                  Load latest version
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStale(null)}
-                  className="btn-ghost inline-flex items-center rounded-control px-4 py-2 text-[13px]"
-                >
-                  Keep editing
-                </button>
+          {showStale && (
+            <div role="alert" className="banner-warn mb-6">
+              <AlertCircle size={18} strokeWidth={1.75} className="mt-0.5 shrink-0 text-amber" aria-hidden="true" />
+              <div className="min-w-0">
+                <p className="text-[14px] font-medium">
+                  {stale.byMe
+                    ? "You saved a newer version in another tab or window."
+                    : `${stale.by} saved a newer version.`}
+                </p>
+                <p className="mt-1 text-[13px] leading-relaxed text-fg-2">
+                  {hasUnsaved
+                    ? "You have unsaved changes here. Loading the latest version discards them. If you keep editing and save, you’ll be asked which version to keep."
+                    : "Load it to see their changes before you edit."}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={() => onReload()}
+                    className="btn-primary inline-flex items-center rounded-control px-4 py-2 text-[13px]"
+                  >
+                    Load latest version
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStale(null)}
+                    className="btn-ghost inline-flex items-center rounded-control px-4 py-2 text-[13px]"
+                  >
+                    Keep editing
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {conflict && (
-          <div role="alert" className="banner-warn mb-6">
-            <AlertCircle size={18} strokeWidth={1.75} className="mt-0.5 shrink-0 text-amber" aria-hidden="true" />
-            <div className="min-w-0">
-              <p className="text-[14px] font-medium">Someone else saved a newer version.</p>
-              <p className="mt-1 text-[13px] leading-relaxed text-fg-2">
-                Your changes aren&apos;t saved yet, but they&apos;re still on this screen. Load the
-                latest version (your unsaved changes will be lost), or save yours over theirs.
-              </p>
-              <div className="mt-3 flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={onReload}
-                  className="btn-ghost inline-flex items-center rounded-control px-4 py-2 text-[13px]"
-                >
-                  Load latest version
-                </button>
-                <button
-                  type="button"
-                  onClick={overwrite}
-                  className="btn-primary inline-flex items-center rounded-control px-4 py-2 text-[13px]"
-                >
-                  Save mine anyway
-                </button>
+          {conflict && (
+            <div role="alert" className="banner-warn mb-6">
+              <AlertCircle size={18} strokeWidth={1.75} className="mt-0.5 shrink-0 text-amber" aria-hidden="true" />
+              <div className="min-w-0">
+                <p className="text-[14px] font-medium">Someone else saved a newer version.</p>
+                <p className="mt-1 text-[13px] leading-relaxed text-fg-2">
+                  Your changes aren&apos;t saved yet, but they&apos;re still on this screen. Load the
+                  latest version (your unsaved changes will be lost), or save yours over theirs.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={() => onReload()}
+                    className="btn-ghost inline-flex items-center rounded-control px-4 py-2 text-[13px]"
+                  >
+                    Load latest version
+                  </button>
+                  <button
+                    type="button"
+                    onClick={overwrite}
+                    className="btn-primary inline-flex items-center rounded-control px-4 py-2 text-[13px]"
+                  >
+                    Save mine anyway
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {status === "error" && saveError && !conflict && (
-          <div className="mb-6 space-y-3">
-            <FormAlert message={saveError} />
-            {gone && (
-              <Link
-                href={`/workspaces/${workspaceId}/documents`}
-                className="btn-ghost inline-flex items-center rounded-control px-4 py-2 text-[13px]"
-              >
-                Back to documents
-              </Link>
+          {status === "error" && saveError && !conflict && (
+            <div className="mb-6 space-y-3">
+              <FormAlert message={saveError} />
+              {gone && (
+                <Link
+                  href={`/workspaces/${workspaceId}/documents`}
+                  className="btn-ghost inline-flex items-center rounded-control px-4 py-2 text-[13px]"
+                >
+                  Back to documents
+                </Link>
+              )}
+            </div>
+          )}
+
+          <input
+            ref={titleInputRef}
+            value={title}
+            onChange={handleTitleChange}
+            onBlur={handleTitleBlur}
+            onKeyDown={handleTitleKeyDown}
+            maxLength={120}
+            placeholder="Untitled"
+            autoComplete="off"
+            aria-label="Document title"
+            className="title-input"
+          />
+
+          <p className="mb-6 mt-3 font-mono text-[11px] uppercase tracking-[0.08em] text-fg-muted">
+            Created {formatDate(initialDoc.createdAt)} by {initialDoc.createdBy.name} · Edited{" "}
+            {formatRelative(meta.updatedAt)} by {meta.editor}
+          </p>
+
+          <Toolbar editor={editor} />
+
+          <div className="editor-card">
+            {!editor && <div className="skeleton m-6 h-48 rounded-card" role="status" />}
+            <EditorContent editor={editor} className="editor-content" />
+            {editor && isEmpty && (
+              <p className="editor-hint" aria-hidden="true">
+                Start writing…
+              </p>
             )}
           </div>
-        )}
-
-        <input
-          ref={titleInputRef}
-          value={title}
-          onChange={handleTitleChange}
-          onBlur={handleTitleBlur}
-          onKeyDown={handleTitleKeyDown}
-          maxLength={120}
-          placeholder="Untitled"
-          autoComplete="off"
-          aria-label="Document title"
-          className="title-input"
-        />
-
-        <p className="mb-6 mt-3 font-mono text-[11px] uppercase tracking-[0.08em] text-fg-muted">
-          Created {formatDate(initialDoc.createdAt)} by {initialDoc.createdBy.name} · Edited{" "}
-          {formatRelative(meta.updatedAt)} by {meta.editor}
-        </p>
-
-        <Toolbar editor={editor} />
-
-        <div className="editor-card">
-          {!editor && <div className="skeleton m-6 h-48 rounded-card" role="status" />}
-          <EditorContent editor={editor} className="editor-content" />
-          {editor && isEmpty && (
-            <p className="editor-hint" aria-hidden="true">
-              Start writing…
-            </p>
-          )}
         </div>
-      </div>
-    </Reveal>
+      </Reveal>
+
+      {/* Outside the fade-in wrapper, so the panel is positioned against the screen. */}
+      {historyOpen && !gone && (
+        <HistoryController
+          workspaceId={workspaceId}
+          documentId={docId}
+          role={role}
+          restoreBlocked={restoreBlocked}
+          prepare={flushSaves}
+          getRevision={() => s.current.revision}
+          onRestored={(number) =>
+            onReload(`Restored version ${number}. What was there before is kept in the history.`)
+          }
+          onLoadLatest={() => onReload()}
+          onClose={() => setHistoryOpen(false)}
+        />
+      )}
+    </>
   );
 }

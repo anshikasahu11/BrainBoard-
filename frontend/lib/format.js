@@ -6,6 +6,11 @@ export function formatDate(iso) {
   });
 }
 
+// "Oct 14, 2026, 10:42 AM", in the visitor's own time zone.
+export function formatDateTime(iso) {
+  return new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+}
+
 const UNITS = [
   ["year", 31536000],
   ["month", 2592000],

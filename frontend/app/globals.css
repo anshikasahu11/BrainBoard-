@@ -1776,3 +1776,48 @@ button.tag-chip:hover {
     opacity: 1;
   }
 }
+/* ---------- Version history ---------- */
+
+/* The history panel slides in from the right */
+.drawer-panel-right {
+  animation: drawer-in-right 0.28s var(--ease-out) both;
+}
+@keyframes drawer-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+/* One version in the list. Named versions get an ember edge. */
+.version-item {
+  display: block;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  text-align: left;
+  background: rgb(255 255 255 / 0.03);
+  border: 0.5px solid var(--color-line);
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
+}
+.version-item:hover {
+  background: rgb(255 255 255 / 0.07);
+  border-color: var(--color-line-strong);
+}
+.version-item-named {
+  border-left: 2px solid var(--color-ember-500);
+}
+
+/* A read-only copy of a document, shown in a scrolling box */
+.readonly-box {
+  max-height: 55vh;
+  overflow: auto;
+}
+.editor-content.readonly-doc .tiptap {
+  min-height: 0;
+  padding: 20px 22px;
+}

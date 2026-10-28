@@ -15,6 +15,7 @@ export default function DocumentView() {
   const { workspace } = useWorkspace();
   const [state, setState] = useState({ id: null, status: "loading" });
   const [reloadKey, setReloadKey] = useState(0);
+  const [notice, setNotice] = useState(""); // shown in the editor after a reload (for example, after a restore)
 
   useEffect(() => {
     let cancelled = false;
@@ -38,8 +39,10 @@ export default function DocumentView() {
     };
   }, [workspace.id, documentId, reloadKey]);
 
-  // Used after an edit conflict: throw away local edits and load the latest version.
-  const reload = useCallback(() => {
+  // Throw away local edits and load the latest version. An optional message is shown in the
+  // editor afterwards. (Buttons call this with a click event, which isn't a message.)
+  const reload = useCallback((message) => {
+    setNotice(typeof message === "string" ? message : "");
     setState({ id: null, status: "loading" });
     setReloadKey((key) => key + 1);
   }, []);
@@ -90,7 +93,7 @@ export default function DocumentView() {
         <FormAlert message={current.message} />
         <button
           type="button"
-          onClick={reload}
+          onClick={() => reload()}
           className="btn-ghost inline-flex items-center rounded-control px-4 py-2 text-sm"
         >
           Try again
@@ -105,6 +108,7 @@ export default function DocumentView() {
     <DocumentEditor
       key={`${current.document.id}:${reloadKey}`}
       initialDoc={current.document}
+      initialNotice={notice}
       onReload={reload}
     />
   );
