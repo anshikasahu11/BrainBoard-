@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Loader2, RotateCcw, Trash2 } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import FormAlert from "@/components/auth/FormAlert";
+import CompareView from "@/components/documents/history/CompareView";
 import KindBadge from "@/components/documents/history/KindBadge";
 import ReadOnlyDocument from "@/components/documents/history/ReadOnlyDocument";
 import { canDeleteVersion } from "@/lib/permissions";
@@ -14,7 +15,9 @@ import {
   restoreVersionRequest,
 } from "@/services/versionService";
 
-// Opens one version, read-only, with its full text. Mount it only while it's open.
+// Opens one version, read-only, with its full text, and lets you compare it with the
+// current document or another version. Mount it only while it's open.
+//   others:         the other versions in the list (for "Compare with")
 //   restoreBlocked: a sentence saying why restoring isn't possible right now, or null.
 //   prepare():      saves anything the person has typed first. Resolves true when it's safe to go on.
 //   getRevision():  the revision the editor is on (so the server can spot a newer save).
@@ -27,6 +30,7 @@ export default function VersionViewer({
   documentId,
   number,
   role,
+  others,
   restoreBlocked,
   prepare,
   getRevision,
@@ -37,6 +41,7 @@ export default function VersionViewer({
   onClose,
 }) {
   const [state, setState] = useState({ status: "loading" });
+  const [tab, setTab] = useState("read"); // "read" | "compare"
   const [confirming, setConfirming] = useState(null); // "restore" | "delete" | null
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -183,14 +188,43 @@ export default function VersionViewer({
             )}
           </p>
 
-          <div
-            role="region"
-            tabIndex={0}
-            aria-label={`Text of version ${number}, read only`}
-            className="editor-card readonly-box"
-          >
-            <ReadOnlyDocument content={version.content} label={`Text of version ${number}`} />
+          <div className="seg" role="group" aria-label="How to view this version">
+            <button
+              type="button"
+              aria-pressed={tab === "read"}
+              onClick={() => setTab("read")}
+              className={`seg-btn ${tab === "read" ? "seg-btn-active" : ""}`}
+            >
+              Read
+            </button>
+            <button
+              type="button"
+              aria-pressed={tab === "compare"}
+              onClick={() => setTab("compare")}
+              className={`seg-btn ${tab === "compare" ? "seg-btn-active" : ""}`}
+            >
+              Compare
+            </button>
           </div>
+
+          {tab === "read" ? (
+            <div
+              role="region"
+              tabIndex={0}
+              aria-label={`Text of version ${number}, read only`}
+              className="editor-card readonly-box"
+            >
+              <ReadOnlyDocument content={version.content} label={`Text of version ${number}`} />
+            </div>
+          ) : (
+            <CompareView
+              workspaceId={workspaceId}
+              documentId={documentId}
+              version={version}
+              others={others}
+              prepare={prepare}
+            />
+          )}
 
           {confirming === "restore" ? (
             <div className="rounded-card border border-line-strong bg-white/5 p-4">

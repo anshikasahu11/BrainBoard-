@@ -1821,3 +1821,104 @@ button.tag-chip:hover {
   min-height: 0;
   padding: 20px 22px;
 }
+/* ---------- Comparing versions ---------- */
+
+/* The Read | Compare switch */
+.seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--radius-control);
+  background: rgb(255 255 255 / 0.06);
+  border: 0.5px solid var(--color-line);
+}
+.seg-btn {
+  padding: 5px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--color-fg-2);
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+.seg-btn:hover {
+  color: var(--color-fg);
+}
+.seg-btn-active {
+  background: rgb(239 106 69 / 0.2);
+  color: var(--color-ember-300);
+}
+
+/* The comparison itself */
+.diff-box {
+  max-height: 45vh;
+  padding: 6px 0;
+  overflow: auto;
+  border-radius: 12px;
+  background: var(--color-code);
+  border: 0.5px solid rgb(90 180 190 / 0.25);
+  color: var(--color-fg-2);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.7;
+}
+.diff-line {
+  display: flex;
+  gap: 8px;
+  padding: 1px 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.diff-marker {
+  flex: none;
+  width: 12px;
+  text-align: center;
+  color: var(--color-fg-muted);
+  user-select: none;
+}
+.diff-text {
+  min-width: 0;
+}
+.diff-line-add {
+  background: rgb(63 182 168 / 0.12);
+  color: var(--color-fg);
+}
+.diff-line-add .diff-marker {
+  color: var(--color-success);
+}
+.diff-line-remove {
+  background: rgb(255 122 120 / 0.1);
+  color: var(--color-fg);
+}
+.diff-line-remove .diff-marker {
+  color: var(--color-danger);
+}
+
+/* Changed words: added are underlined, removed are struck through */
+.diff-ins {
+  background: rgb(63 182 168 / 0.32);
+  border-radius: 3px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.diff-del {
+  background: rgb(255 122 120 / 0.3);
+  border-radius: 3px;
+  text-decoration: line-through;
+}
+
+.diff-gap {
+  padding: 4px 12px;
+  border-top: 0.5px solid var(--color-line);
+  border-bottom: 0.5px solid var(--color-line);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-fg-muted);
+}
+.diff-gap:first-child {
+  border-top: none;
+}
+.diff-gap:last-child {
+  border-bottom: none;
+}

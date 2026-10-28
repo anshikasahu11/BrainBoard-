@@ -44,6 +44,12 @@ export default function HistoryController({
   }
 
   if (viewing !== null) {
+    // The other versions, for "Compare with". Kept live along with the list.
+    const others =
+      versions.status === "ready"
+        ? versions.data.versions.filter((version) => version.number !== viewing)
+        : [];
+
     return (
       <VersionViewer
         key={viewing}
@@ -51,6 +57,7 @@ export default function HistoryController({
         documentId={documentId}
         number={viewing}
         role={role}
+        others={others}
         restoreBlocked={restoreBlocked}
         prepare={prepare}
         getRevision={getRevision}
