@@ -3,8 +3,10 @@ import AppError from "../utils/AppError.js";
 import { isObjectId } from "../utils/objectId.js";
 import { escapeRegex } from "../utils/escapeRegex.js";
 import { ROLES } from "../constants/roles.js";
+import { THROTTLE_MS } from "../constants/activity.js";
 import { PRIORITIES, STATUSES } from "../constants/tasks.js";
-import { emitToWorkspace, socketIdFrom } from "../socket/realtime.js";
+import { announce } from "../socket/realtime.js";
+import { recordActivity } from "../services/activityService.js";
 import {
   assertWorkspaceMember,
   endPosition,
@@ -20,6 +22,9 @@ const POPULATE = [
 const notFound = () => new AppError(404, "Task not found");
 const asText = (value) => (typeof value === "string" ? value : "");
 
+// What an activity entry says it was about.
+const taskTarget = (task) => ({ type: "task", id: task._id, name: task.title });
+
 // "2026-12-31": the right shape AND a real calendar date (no February 30th).
 function isRealDate(value) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -32,17 +37,6 @@ function isRealDate(value) {
 function scoped(req, id) {
   if (!isObjectId(id)) throw notFound();
   return { _id: id, workspace: req.workspace._id };
-}
-
-// Tells everyone in the workspace (except the browser that made the change) about it.
-// Called only AFTER the change is saved.
-function announce(req, event, payload) {
-  emitToWorkspace(
-    req.workspace.id,
-    event,
-    { workspaceId: req.workspace.id, ...payload },
-    { exceptSocketId: socketIdFrom(req) }
-  );
 }
 
 // GET /api/workspaces/:workspaceId/tasks
@@ -154,8 +148,9 @@ export async function createTask(req, res) {
 
   const dto = toTaskDTO(task);
   announce(req, "task:created", { task: dto });
+  await recordActivity(req, { action: "task.created", target: taskTarget(task) });
 
-  // Phase 10: write an activity entry. Phase 13: notify the assignee.
+  // Phase 13: notify the assignee.
   res.status(201).json({ task: dto });
 }
 
@@ -172,6 +167,16 @@ export async function getTask(req, res) {
 export async function updateTask(req, res) {
   const task = await Task.findOne(scoped(req, req.params.taskId));
   if (!task) throw notFound();
+
+  // What it looked like BEFORE this change, so the feed can say what changed.
+  const before = {
+    status: task.status,
+    assignee: task.assignee ? task.assignee.toString() : null,
+    title: task.title,
+    description: task.description,
+    priority: task.priority,
+    dueDate: task.dueDate ?? null,
+  };
 
   const body = req.body;
 
@@ -197,6 +202,38 @@ export async function updateTask(req, res) {
   const dto = toTaskDTO(task);
   announce(req, "task:updated", { task: dto });
 
+  // The feed. One save can be several things at once, so each gets its own entry.
+  const target = taskTarget(task);
+
+  if (task.status !== before.status) {
+    await recordActivity(req, {
+      action: "task.moved",
+      target,
+      meta: { from: before.status, to: task.status },
+    });
+  }
+
+  const assigneeNow = task.assignee ? task.assignee.id : null;
+  if (assigneeNow !== before.assignee) {
+    if (assigneeNow) {
+      await recordActivity(req, {
+        action: "task.assigned",
+        target,
+        meta: { assigneeId: assigneeNow, assigneeName: task.assignee.name },
+      });
+    } else {
+      await recordActivity(req, { action: "task.unassigned", target });
+    }
+  }
+
+  // Title, description, priority and due date count as "edited", once per person per half hour.
+  const edited = ["title", "description", "priority", "dueDate"].some(
+    (field) => (task[field] ?? null) !== (before[field] ?? null)
+  );
+  if (edited) {
+    await recordActivity(req, { action: "task.updated", target, throttleMs: THROTTLE_MS });
+  }
+
   // Phase 13: notify a new assignee.
   res.json({ task: dto });
 }
@@ -213,6 +250,8 @@ export async function moveTask(req, res) {
     throw new AppError(400, "A task can't be placed after itself");
   }
 
+  const fromStatus = task.status;
+
   task.position = await positionAfter(req.workspace._id, status, afterId, task._id);
   task.status = status;
 
@@ -222,7 +261,15 @@ export async function moveTask(req, res) {
   const dto = toTaskDTO(task);
   announce(req, "task:moved", { task: dto });
 
-  // Phase 10: write an activity entry.
+  // Moving to another column is news. Reordering inside a column is not.
+  if (fromStatus !== status) {
+    await recordActivity(req, {
+      action: "task.moved",
+      target: taskTarget(task),
+      meta: { from: fromStatus, to: status },
+    });
+  }
+
   res.json({ task: dto });
 }
 
@@ -240,6 +287,7 @@ export async function deleteTask(req, res) {
   await task.deleteOne();
 
   announce(req, "task:deleted", { taskId: task.id });
+  await recordActivity(req, { action: "task.deleted", target: taskTarget(task) });
 
   res.status(204).end();
 }

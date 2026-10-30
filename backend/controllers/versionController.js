@@ -2,6 +2,7 @@ import Document from "../models/Document.js";
 import DocumentVersion from "../models/DocumentVersion.js";
 import AppError from "../utils/AppError.js";
 import { cleanContent, toDocumentDTO, toListItemDTO } from "../services/documentService.js";
+import { recordActivity } from "../services/activityService.js";
 import { announce, emitToWorkspace } from "../socket/realtime.js";
 import {
   VERSION_POPULATE,
@@ -83,6 +84,13 @@ export async function createVersion(req, res) {
   });
 
   announceVersionCreated(doc, version);
+  // Automatic versions aren't news. A version someone chose to save is.
+  await recordActivity(req, {
+    action: "version.saved",
+    target: { type: "document", id: doc._id, name: doc.title },
+    meta: { number: version.number, label: version.label },
+  });
+
   res.status(201).json({ version: toVersionListItem(version) });
 }
 
@@ -148,6 +156,11 @@ export async function restoreVersion(req, res) {
 
   // Anyone with this document open hears that a newer version exists.
   announce(req, "document:updated", { document: toListItemDTO(updated) });
+  await recordActivity(req, {
+    action: "version.restored",
+    target: { type: "document", id: updated._id, name: updated.title },
+    meta: { number },
+  });
 
   res.json({ document: toDocumentDTO(updated), restoredFrom: number });
 }
@@ -165,6 +178,11 @@ export async function deleteVersion(req, res) {
     workspaceId: req.workspace.id,
     documentId: req.document.id,
     number,
+  });
+  await recordActivity(req, {
+    action: "version.deleted",
+    target: { type: "document", id: req.document._id, name: req.document.title },
+    meta: { number },
   });
 
   res.status(204).end();

@@ -3,8 +3,10 @@ import AppError from "../utils/AppError.js";
 import { isObjectId } from "../utils/objectId.js";
 import { escapeRegex } from "../utils/escapeRegex.js";
 import { ROLES } from "../constants/roles.js";
+import { THROTTLE_MS } from "../constants/activity.js";
 import { LANGUAGES } from "../constants/snippets.js";
 import { announce } from "../socket/realtime.js";
+import { recordActivity } from "../services/activityService.js";
 import { cleanCode, derive, toListItemDTO, toSnippetDTO } from "../services/snippetService.js";
 
 const POPULATE = [
@@ -14,6 +16,9 @@ const POPULATE = [
 
 const notFound = () => new AppError(404, "Snippet not found");
 const asText = (value) => (typeof value === "string" ? value : "");
+
+// What an activity entry says it was about.
+const snippetTarget = (snippet) => ({ type: "snippet", id: snippet._id, name: snippet.title });
 
 // Every lookup includes the workspace, so a snippet id from another workspace
 // is treated exactly like one that doesn't exist.
@@ -88,8 +93,8 @@ export async function createSnippet(req, res) {
 
   // Teammates get the list-item shape: a preview, never the full code.
   announce(req, "snippet:created", { snippet: toListItemDTO(snippet) });
+  await recordActivity(req, { action: "snippet.created", target: snippetTarget(snippet) });
 
-  // Phase 10: write an activity entry.
   res.status(201).json({ snippet: toSnippetDTO(snippet) });
 }
 
@@ -141,6 +146,12 @@ export async function updateSnippet(req, res) {
   }
 
   announce(req, "snippet:updated", { snippet: toListItemDTO(updated) });
+  // Edits count once per person per half hour.
+  await recordActivity(req, {
+    action: "snippet.updated",
+    target: snippetTarget(updated),
+    throttleMs: THROTTLE_MS,
+  });
 
   res.json({ snippet: toSnippetDTO(updated) });
 }
@@ -159,6 +170,7 @@ export async function deleteSnippet(req, res) {
   await snippet.deleteOne();
 
   announce(req, "snippet:deleted", { snippetId: snippet.id });
+  await recordActivity(req, { action: "snippet.deleted", target: snippetTarget(snippet) });
 
   res.status(204).end();
 }

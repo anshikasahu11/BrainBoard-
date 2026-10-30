@@ -5,12 +5,16 @@ import AppError from "../utils/AppError.js";
 import { isObjectId } from "../utils/objectId.js";
 import { ROLES } from "../constants/roles.js";
 import { announce, emitToUser, kickFromWorkspace } from "../socket/realtime.js";
+import { recordActivity } from "../services/activityService.js";
 import {
   toMemberDTO,
   sortMembers,
   canAssignRole,
   canRemoveMember,
 } from "../services/memberService.js";
+
+// What an activity entry says it was about: the person.
+const memberTarget = (user) => ({ type: "member", id: user._id, name: user.name });
 
 // Finds the membership for :userId inside the current workspace, or 404.
 async function findTarget(req) {
@@ -67,6 +71,11 @@ export async function addMember(req, res) {
   announce(req, "member:added", { member });
   // The new member's own screen can show the workspace straight away.
   emitToUser(user.id, "workspace:added", { workspaceId: req.workspace.id });
+  await recordActivity(req, {
+    action: "member.added",
+    target: memberTarget(user),
+    meta: { role },
+  });
 
   // Phase 13: notify the new member.
   res.status(201).json({ member });
@@ -80,6 +89,7 @@ export async function updateMemberRole(req, res) {
     throw new AppError(403, "The owner's role can't be changed");
   }
 
+  const previousRole = target.role;
   target.role = req.body.role;
   await target.save();
 
@@ -87,6 +97,11 @@ export async function updateMemberRole(req, res) {
   // affected person's screen catch up.
   const member = toMemberDTO(target);
   announce(req, "member:updated", { member });
+  await recordActivity(req, {
+    action: "member.role_changed",
+    target: memberTarget(target.user),
+    meta: { from: previousRole, role: target.role },
+  });
 
   res.json({ member });
 }
@@ -125,6 +140,11 @@ export async function removeMember(req, res) {
   emitToUser(userId, "workspace:access-lost", { workspaceId, reason });
   // 4. Their live connections are taken out of the workspace's room.
   await kickFromWorkspace(userId, workspaceId);
+  // 5. The feed records it AFTER that, so the person who lost access doesn't receive the entry.
+  await recordActivity(req, {
+    action: isSelf ? "member.left" : "member.removed",
+    target: memberTarget(target.user),
+  });
 
   res.status(204).end();
 }

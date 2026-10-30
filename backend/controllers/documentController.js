@@ -4,7 +4,9 @@ import AppError from "../utils/AppError.js";
 import { isObjectId } from "../utils/objectId.js";
 import { escapeRegex } from "../utils/escapeRegex.js";
 import { ROLES } from "../constants/roles.js";
+import { THROTTLE_MS } from "../constants/activity.js";
 import { announce } from "../socket/realtime.js";
+import { recordActivity } from "../services/activityService.js";
 import {
   EMPTY_DOC,
   cleanContent,
@@ -19,6 +21,9 @@ const POPULATE = [
 ];
 
 const notFound = () => new AppError(404, "Document not found");
+
+// What an activity entry says it was about.
+const docTarget = (doc) => ({ type: "document", id: doc._id, name: doc.title });
 
 // Every lookup includes the workspace, so a document id from another
 // workspace is treated exactly like one that doesn't exist.
@@ -60,8 +65,8 @@ export async function createDocument(req, res) {
 
   // Teammates get the list-item shape: no content, so the event stays tiny.
   announce(req, "document:created", { document: toListItemDTO(doc) });
+  await recordActivity(req, { action: "document.created", target: docTarget(doc) });
 
-  // Phase 10: write an activity entry.
   res.status(201).json({ document: toDocumentDTO(doc) });
 }
 
@@ -85,6 +90,12 @@ export async function updateDocument(req, res) {
     changes.content = cleaned.content;
     changes.plainText = cleaned.plainText;
     changes.excerpt = cleaned.excerpt;
+  }
+
+  // A rename needs the old title for the feed. It's only read when the title is part of this save.
+  let previousTitle;
+  if (title !== undefined) {
+    previousTitle = (await Document.findOne(filter).select("title"))?.title;
   }
 
   // Version history: now and then (see AUTO_INTERVAL_MS), keep the document as it is
@@ -120,6 +131,23 @@ export async function updateDocument(req, res) {
   // The new revision tells anyone who has this document open that theirs is out of date.
   announce(req, "document:updated", { document: toListItemDTO(updated) });
 
+  // The feed: a rename is its own entry, and edits count once per person per half hour
+  // (autosave would otherwise fill the feed with the same line).
+  if (previousTitle !== undefined && previousTitle !== updated.title) {
+    await recordActivity(req, {
+      action: "document.renamed",
+      target: docTarget(updated),
+      meta: { from: previousTitle, to: updated.title },
+    });
+  }
+  if (content !== undefined) {
+    await recordActivity(req, {
+      action: "document.updated",
+      target: docTarget(updated),
+      throttleMs: THROTTLE_MS,
+    });
+  }
+
   res.json({ document: toDocumentDTO(updated) });
 }
 
@@ -139,6 +167,8 @@ export async function deleteDocument(req, res) {
   await DocumentVersion.deleteMany({ document: doc._id });
 
   announce(req, "document:deleted", { documentId: doc.id });
+  // The feed keeps what happened, and the name it had.
+  await recordActivity(req, { action: "document.deleted", target: docTarget(doc) });
 
   res.status(204).end();
 }

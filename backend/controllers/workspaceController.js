@@ -2,7 +2,10 @@ import Workspace from "../models/Workspace.js";
 import Membership from "../models/Membership.js";
 import { ROLES } from "../constants/roles.js";
 import { announce, closeWorkspaceRoom } from "../socket/realtime.js";
+import { recordActivity } from "../services/activityService.js";
 import { deleteWorkspaceCascade, toWorkspaceDTO } from "../services/workspaceService.js";
+
+const workspaceTarget = (workspace) => ({ type: "workspace", id: workspace._id, name: workspace.name });
 
 // POST /api/workspaces
 export async function createWorkspace(req, res) {
@@ -23,6 +26,13 @@ export async function createWorkspace(req, res) {
     await Workspace.findByIdAndDelete(workspace._id);
     throw error;
   }
+
+  // The first line of the workspace's history. (This route has no loaded workspace yet, so it's named.)
+  await recordActivity(req, {
+    workspaceId: workspace._id,
+    action: "workspace.created",
+    target: workspaceTarget(workspace),
+  });
 
   res.status(201).json({ workspace: toWorkspaceDTO(workspace, ROLES.OWNER, 1) });
 }
@@ -58,6 +68,8 @@ export async function getWorkspace(req, res) {
 
 // PATCH /api/workspaces/:workspaceId  (owner or admin)
 export async function renameWorkspace(req, res) {
+  const previousName = req.workspace.name;
+
   req.workspace.name = req.body.name;
   await req.workspace.save();
 
@@ -68,6 +80,14 @@ export async function renameWorkspace(req, res) {
     updatedAt: req.workspace.updatedAt,
   });
 
+  if (previousName !== req.workspace.name) {
+    await recordActivity(req, {
+      action: "workspace.renamed",
+      target: workspaceTarget(req.workspace),
+      meta: { from: previousName, to: req.workspace.name },
+    });
+  }
+
   const memberCount = await Membership.countDocuments({ workspace: req.workspace._id });
   res.json({ workspace: toWorkspaceDTO(req.workspace, req.membership.role, memberCount) });
 }
@@ -76,6 +96,7 @@ export async function renameWorkspace(req, res) {
 export async function deleteWorkspace(req, res) {
   const workspaceId = req.workspace.id;
 
+  // The workspace's history goes with it (see deleteWorkspaceCascade).
   await deleteWorkspaceCascade(req.workspace._id);
 
   // Tell everyone in the room first, then empty it: nobody stays subscribed to
