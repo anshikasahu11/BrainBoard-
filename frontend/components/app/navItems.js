@@ -1,4 +1,4 @@
-import { LayoutDashboard, FileText, Kanban, Code, Users, Settings } from "lucide-react";
+import { Activity, LayoutDashboard, FileText, Kanban, Code, Users, Settings } from "lucide-react";
 
 // The sidebar menu. `path` is added after /workspaces/<id>.
 // soon: true shows the item dimmed and not clickable, until its page exists.
@@ -7,6 +7,7 @@ export const NAV_ITEMS = [
   { key: "documents", label: "Documents", icon: FileText, path: "/documents", group: "work" },
   { key: "tasks", label: "Tasks", icon: Kanban, path: "/tasks", group: "work" },
   { key: "snippets", label: "Snippets", icon: Code, path: "/snippets", group: "work" },
+  { key: "activity", label: "Activity", icon: Activity, path: "/activity", group: "work" },
   { key: "members", label: "Members", icon: Users, path: "/members", group: "manage" },
   { key: "settings", label: "Settings", icon: Settings, path: "/settings", group: "manage" },
 ];

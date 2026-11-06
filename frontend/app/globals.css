@@ -1922,3 +1922,75 @@ button.tag-chip:hover {
 .diff-gap:last-child {
   border-bottom: none;
 }
+/* ---------- Activity feed ---------- */
+
+.activity-day-heading {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-fg-2);
+}
+
+.activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 0;
+  border-top: 0.5px solid var(--color-line);
+}
+.activity-item:first-child {
+  border-top: none;
+}
+
+/* Names in a sentence that lead somewhere */
+.activity-link {
+  color: var(--color-fg);
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: rgb(255 235 225 / 0.3);
+  text-underline-offset: 3px;
+  transition:
+    color var(--dur-fast) var(--ease-out),
+    text-decoration-color var(--dur-fast) var(--ease-out);
+}
+.activity-link:hover {
+  color: var(--color-ember-300);
+  text-decoration-color: currentColor;
+}
+
+/* An entry that just arrived live fades in once */
+.activity-fresh {
+  animation: activity-in 0.5s var(--ease-out) both;
+}
+@keyframes activity-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* "Show N new activities": fixed, so it never pushes the list around */
+.activity-pill-wrap {
+  position: fixed;
+  top: 4.5rem;
+  left: 0;
+  right: 0;
+  z-index: 45;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+.activity-pill-wrap > button {
+  pointer-events: auto;
+}
+@media (min-width: 1024px) {
+  .activity-pill-wrap {
+    top: 1.25rem;
+    padding-left: 16rem; /* the sidebar's width, so the button sits over the page */
+  }
+}

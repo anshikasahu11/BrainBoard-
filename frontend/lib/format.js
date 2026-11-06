@@ -11,6 +11,34 @@ export function formatDateTime(iso) {
   return new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 }
 
+// "10:42 AM", in the visitor's own time zone.
+export function formatTime(iso) {
+  return new Date(iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+}
+
+// "Today", "Yesterday", or "Monday, October 12" (with the year if it isn't this year).
+export function formatDayLabel(iso) {
+  const date = new Date(iso);
+
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const startOfDay = new Date(date);
+  startOfDay.setHours(0, 0, 0, 0);
+
+  // Rounding keeps days with a clock change (23 or 25 hours) counted as one day.
+  const daysAgo = Math.round((startOfToday - startOfDay) / 86400000);
+  if (daysAgo <= 0) return "Today";
+  if (daysAgo === 1) return "Yesterday";
+
+  const sameYear = date.getFullYear() === new Date().getFullYear();
+  return date.toLocaleDateString(undefined, {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    ...(sameYear ? {} : { year: "numeric" }),
+  });
+}
+
 const UNITS = [
   ["year", 31536000],
   ["month", 2592000],
