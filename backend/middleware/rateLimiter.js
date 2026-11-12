@@ -27,3 +27,12 @@ export const versionLimiter = rateLimit({
   legacyHeaders: false,
   message: { message: "Too many versions saved. Please try again later." },
 });
+
+// Search runs as you type, so it gets a generous allowance. This only stops a runaway loop.
+export const searchLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 120,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { message: "Too many searches. Please wait a moment." },
+});
