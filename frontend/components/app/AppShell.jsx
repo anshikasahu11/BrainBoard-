@@ -9,7 +9,9 @@ import FullScreenLoader from "@/components/ui/FullScreenLoader";
 import FormAlert from "@/components/auth/FormAlert";
 import LiveIndicator from "@/components/app/LiveIndicator";
 import Sidebar from "@/components/app/Sidebar";
+import SearchButton from "@/components/search/SearchButton";
 import Reveal from "@/components/Reveal";
+import { SearchProvider } from "@/context/SearchContext";
 import useWorkspace from "@/hooks/useWorkspace";
 
 // What to say when access is gone, depending on why.
@@ -135,72 +137,76 @@ export default function AppShell({ children }) {
   const wide = pathname.startsWith(`/workspaces/${workspace.id}/tasks`);
 
   return (
-    <Frame>
-      <a href="#main" className="skip-link">
-        Skip to content
-      </a>
+    // The search window belongs to the workspace you're in, so it lives here.
+    <SearchProvider>
+      <Frame>
+        <a href="#main" className="skip-link">
+          Skip to content
+        </a>
 
-      <div className="flex min-h-screen">
-        {/* Desktop sidebar */}
-        <aside className="sticky top-0 hidden h-screen w-64 shrink-0 overflow-y-auto border-r border-line bg-void/45 backdrop-blur-xl lg:block">
-          <Sidebar />
-        </aside>
+        <div className="flex min-h-screen">
+          {/* Desktop sidebar */}
+          <aside className="sticky top-0 hidden h-screen w-64 shrink-0 overflow-y-auto border-r border-line bg-void/45 backdrop-blur-xl lg:block">
+            <Sidebar />
+          </aside>
 
-        <div className="flex min-w-0 flex-1 flex-col">
-          {/* Mobile top bar */}
-          <div className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-line bg-void/40 px-4 backdrop-blur-xl lg:hidden">
-            <button
-              type="button"
-              onClick={() => setDrawerOpen(true)}
-              aria-label="Open menu"
-              aria-expanded={drawerOpen}
-              className="grid size-9 place-items-center rounded-control text-fg transition-colors hover:bg-white/10"
+          <div className="flex min-w-0 flex-1 flex-col">
+            {/* Mobile top bar */}
+            <div className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-line bg-void/40 px-4 backdrop-blur-xl lg:hidden">
+              <button
+                type="button"
+                onClick={() => setDrawerOpen(true)}
+                aria-label="Open menu"
+                aria-expanded={drawerOpen}
+                className="grid size-9 place-items-center rounded-control text-fg transition-colors hover:bg-white/10"
+              >
+                <Menu size={18} strokeWidth={1.5} />
+              </button>
+              <span className="min-w-0 flex-1 truncate text-[14px] font-medium">{workspace.name}</span>
+              <SearchButton compact />
+              <LiveIndicator compact />
+            </div>
+
+            <main
+              id="main"
+              tabIndex={-1}
+              className={`mx-auto w-full flex-1 px-6 py-10 sm:py-14 ${wide ? "max-w-7xl" : "max-w-4xl"}`}
             >
-              <Menu size={18} strokeWidth={1.5} />
-            </button>
-            <span className="min-w-0 flex-1 truncate text-[14px] font-medium">{workspace.name}</span>
-            <LiveIndicator compact />
+              {children}
+            </main>
           </div>
+        </div>
 
-          <main
-            id="main"
-            tabIndex={-1}
-            className={`mx-auto w-full flex-1 px-6 py-10 sm:py-14 ${wide ? "max-w-7xl" : "max-w-4xl"}`}
+        {/* Mobile drawer */}
+        {drawerOpen && (
+          <div
+            className="fixed inset-0 z-50 lg:hidden"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Workspace navigation"
           >
-            {children}
-          </main>
-        </div>
-      </div>
-
-      {/* Mobile drawer */}
-      {drawerOpen && (
-        <div
-          className="fixed inset-0 z-50 lg:hidden"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Workspace navigation"
-        >
-          <button
-            type="button"
-            aria-label="Close menu"
-            tabIndex={-1}
-            onClick={() => setDrawerOpen(false)}
-            className="absolute inset-0 bg-void/70 backdrop-blur-sm"
-          />
-          <div className="drawer-panel absolute inset-y-0 left-0 w-72 max-w-[85vw] overflow-y-auto border-r border-line bg-sidebar/95 backdrop-blur-xl">
             <button
-              ref={closeButtonRef}
               type="button"
-              onClick={() => setDrawerOpen(false)}
               aria-label="Close menu"
-              className="absolute right-3 top-3 grid size-9 place-items-center rounded-control text-fg-2 transition-colors hover:bg-white/10 hover:text-fg"
-            >
-              <X size={18} strokeWidth={1.5} />
-            </button>
-            <Sidebar onNavigate={() => setDrawerOpen(false)} />
+              tabIndex={-1}
+              onClick={() => setDrawerOpen(false)}
+              className="absolute inset-0 bg-void/70 backdrop-blur-sm"
+            />
+            <div className="drawer-panel absolute inset-y-0 left-0 w-72 max-w-[85vw] overflow-y-auto border-r border-line bg-sidebar/95 backdrop-blur-xl">
+              <button
+                ref={closeButtonRef}
+                type="button"
+                onClick={() => setDrawerOpen(false)}
+                aria-label="Close menu"
+                className="absolute right-3 top-3 grid size-9 place-items-center rounded-control text-fg-2 transition-colors hover:bg-white/10 hover:text-fg"
+              >
+                <X size={18} strokeWidth={1.5} />
+              </button>
+              <Sidebar onNavigate={() => setDrawerOpen(false)} />
+            </div>
           </div>
-        </div>
-      )}
-    </Frame>
+        )}
+      </Frame>
+    </SearchProvider>
   );
 }

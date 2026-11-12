@@ -8,6 +8,7 @@ import LiveIndicator from "@/components/app/LiveIndicator";
 import OnlineAvatars from "@/components/app/OnlineAvatars";
 import WorkspaceSwitcher from "@/components/app/WorkspaceSwitcher";
 import { NAV_ITEMS } from "@/components/app/navItems";
+import SearchButton from "@/components/search/SearchButton";
 import useAuth from "@/hooks/useAuth";
 import useWorkspace from "@/hooks/useWorkspace";
 
@@ -77,6 +78,7 @@ export default function Sidebar({ onNavigate }) {
 
       <div className="space-y-3">
         <WorkspaceSwitcher onNavigate={onNavigate} />
+        <SearchButton onNavigate={onNavigate} />
         <LiveIndicator />
         <OnlineAvatars />
       </div>
