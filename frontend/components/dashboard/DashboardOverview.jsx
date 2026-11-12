@@ -10,6 +10,7 @@ import GettingStarted from "@/components/dashboard/GettingStarted";
 import StatsRow from "@/components/dashboard/StatsRow";
 import TeamCard from "@/components/dashboard/TeamCard";
 import AssignedCard from "@/components/dashboard/AssignedCard";
+import RecentActivityCard from "@/components/dashboard/RecentActivityCard";
 import RecentDocumentsCard from "@/components/dashboard/RecentDocumentsCard";
 import RecentTasksCard from "@/components/dashboard/RecentTasksCard";
 import RecentSnippetsCard from "@/components/dashboard/RecentSnippetsCard";
@@ -58,8 +59,8 @@ export default function DashboardOverview() {
 
   // ----- Live updates -----
   // When a teammate changes something, the matching cards refresh by themselves. Each
-  // kind of change has its own merged reload. The Team card and the member count keep
-  // themselves up to date.
+  // kind of change has its own merged reload. The Team card, the Recent activity card and
+  // the member count keep themselves up to date.
   const { reload: reloadStats } = stats;
   const { reload: reloadAssigned } = assigned;
   const { reload: reloadRecentTasks } = recentTasks;
@@ -211,12 +212,15 @@ export default function DashboardOverview() {
           <Reveal level="balanced" inView delay={0.08} className="h-full">
             <RecentTasksCard recent={recentTasks} onOpenTask={openTask} onCreateTask={openNewTask} />
           </Reveal>
-          <Reveal level="balanced" inView className="h-full md:col-span-2">
+          <Reveal level="balanced" inView className="h-full">
             <RecentSnippetsCard
               recent={snippets}
               onOpen={openSnippet}
               onCreate={openNewSnippet}
             />
+          </Reveal>
+          <Reveal level="balanced" inView delay={0.08} className="h-full">
+            <RecentActivityCard />
           </Reveal>
         </div>
       </div>

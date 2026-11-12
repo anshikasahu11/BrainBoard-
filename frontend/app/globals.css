@@ -1994,3 +1994,15 @@ button.tag-chip:hover {
     padding-left: 16rem; /* the sidebar's width, so the button sits over the page */
   }
 }
+/* ---------- Activity: compact rows (the dashboard card and a document's own history) ---------- */
+
+.activity-item-compact {
+  gap: 10px;
+  padding: 10px 0;
+}
+.activity-item-compact:first-child {
+  padding-top: 0;
+}
+.activity-item-compact:last-child {
+  padding-bottom: 0;
+}

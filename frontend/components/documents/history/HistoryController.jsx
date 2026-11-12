@@ -25,6 +25,7 @@ export default function HistoryController({
     listVersionsRequest(workspaceId, documentId)
   );
   const [viewing, setViewing] = useState(null); // a version number, or null for the list
+  const [tab, setTab] = useState("versions"); // "versions" | "activity"; kept while a version is open
 
   // Live: when anyone saves or deletes a version of THIS document, refresh the list.
   const { reload } = versions;
@@ -75,6 +76,8 @@ export default function HistoryController({
       workspaceId={workspaceId}
       documentId={documentId}
       versions={versions}
+      tab={tab}
+      onTab={setTab}
       prepare={prepare}
       onCreated={reload}
       onOpen={setViewing}

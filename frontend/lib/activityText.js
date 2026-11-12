@@ -20,8 +20,10 @@ export const categoryLabel = (category) => CATEGORY_LABELS[category] ?? "Activit
 //   { text }                              plain words
 //   { text, strong: true }                a name, in bold
 //   { text, strong: true, href }          a name that links somewhere
-// ctx: { workspaceId, userId }. The person looking at the feed is "You".
-export function describeActivity(activity, { workspaceId, userId }) {
+// ctx: { workspaceId, userId, linkTarget }. The person looking at the feed is "You".
+//   linkTarget (default true): set it to false where every entry is about the same
+//   document (its own history panel), so its name isn't a link to the page you're on.
+export function describeActivity(activity, { workspaceId, userId, linkTarget = true }) {
   const { action, actor, target } = activity;
   const meta = activity.meta ?? {};
   const base = `/workspaces/${workspaceId}`;
@@ -34,7 +36,7 @@ export function describeActivity(activity, { workspaceId, userId }) {
   const who = strong(isMe(actor.id) ? "You" : actor.name);
 
   // A deleted document isn't linked below (there's nowhere to go).
-  const doc = () => strong(label("Untitled"), `${base}/documents/${target.id}`);
+  const doc = () => strong(label("Untitled"), linkTarget ? `${base}/documents/${target.id}` : undefined);
   const task = () => strong(label("an untitled task"), `${base}/tasks`);
   const snippet = () => strong(label("an untitled snippet"), `${base}/snippets`);
   const person = () => (isMe(target.id) ? text("you") : strong(target.name, `${base}/members`));

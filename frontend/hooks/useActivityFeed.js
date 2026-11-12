@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { listActivityRequest } from "@/services/activityService";
 
-const PAGE_SIZE = 30;
+const DEFAULT_PAGE_SIZE = 30;
 
 // Removes repeats, keeping the first of each id.
 function unique(items) {
@@ -16,7 +16,8 @@ function unique(items) {
 }
 
 // Loads a workspace's activity feed, a page at a time.
-//   filters: { category, actor, target }. A new set of filters loads again.
+//   filters:  { category, actor, target }. A new set of filters loads again.
+//   options:  { pageSize } how many entries per page (the dashboard card asks for 6).
 // Returns:
 //   status:      "loading" | "ready" | "error"
 //   items:       the entries, newest first
@@ -28,7 +29,7 @@ function unique(items) {
 //   retry():     fetch again after an error
 //   refreshing:  true while the list on screen belongs to older filters
 //   filterKey:   a string that identifies the current filters
-export default function useActivityFeed(workspaceId, filters) {
+export default function useActivityFeed(workspaceId, filters, { pageSize = DEFAULT_PAGE_SIZE } = {}) {
   const { category = "", actor = "", target = "" } = filters;
   const key = `${category}|${actor}|${target}`;
 
@@ -44,7 +45,7 @@ export default function useActivityFeed(workspaceId, filters) {
     let cancelled = false;
     epochRef.current += 1; // any "load more" still in flight now belongs to an old list
 
-    listActivityRequest(workspaceId, { category, actor, target, limit: PAGE_SIZE })
+    listActivityRequest(workspaceId, { category, actor, target, limit: pageSize })
       .then((data) => {
         if (cancelled) return;
         quietRef.current = false;
@@ -63,7 +64,7 @@ export default function useActivityFeed(workspaceId, filters) {
     return () => {
       cancelled = true;
     };
-  }, [workspaceId, category, actor, target, key, attempt]);
+  }, [workspaceId, category, actor, target, pageSize, key, attempt]);
 
   const reload = useCallback(() => {
     quietRef.current = true;
@@ -89,7 +90,7 @@ export default function useActivityFeed(workspaceId, filters) {
         actor,
         target,
         before: state.cursor,
-        limit: PAGE_SIZE,
+        limit: pageSize,
       });
 
       // The filters changed (or the feed reloaded) while this was loading: it's an old answer.

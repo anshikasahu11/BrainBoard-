@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Code, FileText, History, Kanban, Settings, Users } from "lucide-react";
 import { categoryLabel, describeActivity } from "@/lib/activityText";
-import { formatDateTime, formatTime } from "@/lib/format";
+import { formatDateTime, formatRelative, formatTime } from "@/lib/format";
 
 // The icon follows the kind of thing. The category word beside it says the same in
 // words, so the icon is never the only signal.
@@ -38,13 +38,26 @@ function Sentence({ segments }) {
 }
 
 // One line of history. `fresh` entries (they just arrived live) fade in once.
-export default function ActivityItem({ activity, workspaceId, userId }) {
-  const segments = describeActivity(activity, { workspaceId, userId });
+//   compact:    a tighter row that says "5 minutes ago" instead of a clock time
+//               (the dashboard card and a document's own history use it)
+//   linkTarget: false where every entry is about the same document
+export default function ActivityItem({
+  activity,
+  workspaceId,
+  userId,
+  compact = false,
+  linkTarget = true,
+}) {
+  const segments = describeActivity(activity, { workspaceId, userId, linkTarget });
   const Icon = iconFor(activity.action);
 
   return (
-    <li className={`activity-item ${activity.fresh ? "activity-fresh" : ""}`}>
-      <span className="avatar" aria-hidden="true">
+    <li
+      className={`activity-item ${compact ? "activity-item-compact" : ""} ${
+        activity.fresh ? "activity-fresh" : ""
+      }`}
+    >
+      <span className={`avatar ${compact ? "avatar-sm" : ""}`} aria-hidden="true">
         {activity.actor.name.charAt(0).toUpperCase()}
       </span>
 
@@ -57,7 +70,7 @@ export default function ActivityItem({ activity, workspaceId, userId }) {
           {categoryLabel(activity.category)}
           <span aria-hidden="true">·</span>
           <time dateTime={activity.createdAt} title={formatDateTime(activity.createdAt)}>
-            {formatTime(activity.createdAt)}
+            {compact ? formatRelative(activity.createdAt) : formatTime(activity.createdAt)}
           </time>
         </p>
       </div>
