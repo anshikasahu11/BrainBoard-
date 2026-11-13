@@ -1,15 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, Pencil, Trash2 } from "lucide-react";
+import { Loader2, Pencil, Sparkles, Trash2 } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import FormAlert from "@/components/auth/FormAlert";
+import SnippetAi from "@/components/ai/SnippetAi";
 import CodeBlock from "@/components/snippets/CodeBlock";
 import CopyButton from "@/components/snippets/CopyButton";
 import { canDeleteSnippet } from "@/lib/permissions";
 import { languageInfo } from "@/lib/snippets";
 import { formatDate, formatRelative } from "@/lib/format";
 import { deleteSnippetRequest, getSnippetRequest } from "@/services/snippetService";
+
+const TABS = [
+  { value: "code", label: "Code", ai: false },
+  { value: "explain", label: "Explain", ai: true },
+  { value: "improve", label: "Improve", ai: true },
+];
 
 // Opens one snippet with its FULL code. Mount it only while it's open.
 export default function SnippetViewer({
@@ -26,6 +33,16 @@ export default function SnippetViewer({
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+
+  // Which tab is showing. The AI tabs only load the first time they're opened (so browsing
+  // snippets makes no extra requests), and then stay, so an answer survives switching tabs.
+  const [tab, setTab] = useState("code");
+  const [opened, setOpened] = useState({ explain: false, improve: false });
+
+  function chooseTab(next) {
+    setTab(next);
+    if (next !== "code") setOpened((current) => ({ ...current, [next]: true }));
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -121,13 +138,41 @@ export default function SnippetViewer({
             </p>
           )}
 
-          <CodeBlock
-            code={snippet.code}
-            language={snippet.language}
-            label={`Code of ${snippet.title}`}
-            scrollable
-            className="code-block-full"
-          />
+          <div className="seg" role="group" aria-label="What to show">
+            {TABS.map((item) => (
+              <button
+                key={item.value}
+                type="button"
+                aria-pressed={tab === item.value}
+                onClick={() => chooseTab(item.value)}
+                className={`seg-btn inline-flex items-center gap-1.5 ${tab === item.value ? "seg-btn-active" : ""}`}
+              >
+                {item.ai && <Sparkles size={12} strokeWidth={1.75} aria-hidden="true" />}
+                {item.label}
+              </button>
+            ))}
+          </div>
+
+          <div hidden={tab !== "code"}>
+            <CodeBlock
+              code={snippet.code}
+              language={snippet.language}
+              label={`Code of ${snippet.title}`}
+              scrollable
+              className="code-block-full"
+            />
+          </div>
+
+          {opened.explain && (
+            <div hidden={tab !== "explain"}>
+              <SnippetAi workspaceId={workspaceId} snippet={snippet} mode="explain" />
+            </div>
+          )}
+          {opened.improve && (
+            <div hidden={tab !== "improve"}>
+              <SnippetAi workspaceId={workspaceId} snippet={snippet} mode="improve" />
+            </div>
+          )}
 
           <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-fg-muted">
             {snippet.lineCount} {snippet.lineCount === 1 ? "line" : "lines"} · Created by{" "}

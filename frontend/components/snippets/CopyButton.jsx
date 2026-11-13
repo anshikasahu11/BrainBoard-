@@ -11,8 +11,9 @@ const VIEWS = {
 };
 
 // getText: returns the text to copy, or a promise for it (a card fetches the full
-// code at the moment you click). subject: what's being copied, for screen readers.
-export default function CopyButton({ getText, subject, className = "" }) {
+// code at the moment you click). subject: what it's from, and what: what it is ("code",
+// "summary"...), both for screen readers.
+export default function CopyButton({ getText, subject, what = "code", className = "" }) {
   const [state, setState] = useState("idle"); // idle | copied | failed
   const timer = useRef(null);
 
@@ -37,12 +38,12 @@ export default function CopyButton({ getText, subject, className = "" }) {
       <button type="button" onClick={handleClick} className={`copy-btn ${view.tone} ${className}`}>
         <Icon size={14} strokeWidth={1.75} aria-hidden="true" />
         {view.text}
-        <span className="sr-only"> code from {subject}</span>
+        <span className="sr-only"> {what} from {subject}</span>
       </button>
 
       {/* Announces the result to screen readers, without moving focus. */}
       <span role="status" aria-live="polite" className="sr-only">
-        {state === "copied" && `Copied ${subject} to the clipboard.`}
+        {state === "copied" && `Copied ${what} from ${subject} to the clipboard.`}
         {state === "failed" && "Couldn’t copy to the clipboard."}
       </span>
     </>

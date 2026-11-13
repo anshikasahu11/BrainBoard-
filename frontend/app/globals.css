@@ -2161,3 +2161,64 @@ button.tag-chip:hover {
   background: rgb(255 255 255 / 0.09);
   color: var(--color-fg);
 }
+/* ---------- AI assistant ---------- */
+
+/* The mark for anything AI: warm to cool, the spectrum the design system keeps for AI */
+.ai-orb {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  border-radius: 9999px;
+  color: #fff;
+  background: radial-gradient(
+    circle at 30% 25%,
+    rgb(255 213 128 / 0.95),
+    rgb(239 106 69 / 0.9) 45%,
+    rgb(42 127 142 / 0.95) 100%
+  );
+  box-shadow:
+    0 0 18px rgb(239 106 69 / 0.35),
+    inset 0 0 0 1px rgb(255 255 255 / 0.25);
+}
+.ai-orb-busy {
+  animation: ai-pulse 1.6s ease-in-out infinite;
+}
+@keyframes ai-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+/* A quiet note box (privacy, "AI is off") */
+.ai-box {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 0.5px solid var(--color-line-strong);
+  background: rgb(255 255 255 / 0.04);
+}
+
+/* "Check this before you use it" */
+.ai-warn {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 0.5px solid rgb(254 221 129 / 0.45);
+  background: rgb(254 221 129 / 0.08);
+}
+
+.ai-heading {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-fg-2);
+}
+
+.ai-note {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--color-fg-muted);
+}

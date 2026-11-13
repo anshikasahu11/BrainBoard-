@@ -3,9 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { EditorContent, useEditor } from "@tiptap/react";
-import { AlertCircle, ArrowLeft, History } from "lucide-react";
+import { AlertCircle, ArrowLeft, History, Sparkles } from "lucide-react";
 import Reveal from "@/components/Reveal";
 import FormAlert from "@/components/auth/FormAlert";
+import DocumentAiPanel from "@/components/ai/DocumentAiPanel";
 import EditingNow from "@/components/documents/EditingNow";
 import Toolbar from "@/components/documents/Toolbar";
 import SaveIndicator from "@/components/documents/SaveIndicator";
@@ -44,6 +45,7 @@ export default function DocumentEditor({ initialDoc, initialNotice = "", onReloa
   const [revision, setRevision] = useState(initialDoc.revision); // the revision this editor is based on
   const [stale, setStale] = useState(null); // { revision, by, byMe } when a newer version exists
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
   const [notice, setNotice] = useState(initialNotice);
   const [meta, setMeta] = useState({
     updatedAt: initialDoc.updatedAt,
@@ -278,6 +280,7 @@ export default function DocumentEditor({ initialDoc, initialNotice = "", onReloa
     clearTimers();
     setGone(true);
     setHistoryOpen(false);
+    setAiOpen(false);
     setSaveError("This document was deleted, so your latest changes can't be saved.");
     setStatus("error");
   }
@@ -358,11 +361,12 @@ export default function DocumentEditor({ initialDoc, initialNotice = "", onReloa
     save();
   }
 
-  // ----- Version history -----
+  // ----- Version history and AI: both work from what the SERVER holds -----
 
-  // Saves anything typed but not yet sent, and waits for it. Saving a version or restoring
-  // works from what the SERVER holds, so this runs first. Resolves true when nothing
-  // is left unsaved, or false if it couldn't be saved (offline, a conflict...).
+  // Saves anything typed but not yet sent, and waits for it. Saving a version, restoring, or
+  // asking the AI about this document works from what the SERVER holds, so this runs first.
+  // Resolves true when nothing is left unsaved, or false if it couldn't be saved (offline, a
+  // conflict...).
   async function flushSaves() {
     const state = s.current;
 
@@ -419,15 +423,26 @@ export default function DocumentEditor({ initialDoc, initialNotice = "", onReloa
                 onRetry={status === "error" && !gone ? save : undefined}
               />
               {!gone && (
-                <button
-                  type="button"
-                  onClick={() => setHistoryOpen(true)}
-                  aria-haspopup="dialog"
-                  className="btn-ghost inline-flex items-center gap-2 rounded-control px-3 py-1.5 text-[13px]"
-                >
-                  <History size={14} strokeWidth={1.5} aria-hidden="true" />
-                  History
-                </button>
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setAiOpen(true)}
+                    aria-haspopup="dialog"
+                    className="btn-ghost inline-flex items-center gap-2 rounded-control px-3 py-1.5 text-[13px]"
+                  >
+                    <Sparkles size={14} strokeWidth={1.5} aria-hidden="true" />
+                    AI
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setHistoryOpen(true)}
+                    aria-haspopup="dialog"
+                    className="btn-ghost inline-flex items-center gap-2 rounded-control px-3 py-1.5 text-[13px]"
+                  >
+                    <History size={14} strokeWidth={1.5} aria-hidden="true" />
+                    History
+                  </button>
+                </>
               )}
             </div>
           </div>
@@ -550,7 +565,7 @@ export default function DocumentEditor({ initialDoc, initialNotice = "", onReloa
         </div>
       </Reveal>
 
-      {/* Outside the fade-in wrapper, so the panel is positioned against the screen. */}
+      {/* Outside the fade-in wrapper, so the panels are positioned against the screen. */}
       {historyOpen && !gone && (
         <HistoryController
           workspaceId={workspaceId}
@@ -564,6 +579,16 @@ export default function DocumentEditor({ initialDoc, initialNotice = "", onReloa
           }
           onLoadLatest={() => onReload()}
           onClose={() => setHistoryOpen(false)}
+        />
+      )}
+
+      {aiOpen && !gone && (
+        <DocumentAiPanel
+          workspaceId={workspaceId}
+          documentId={docId}
+          title={title.trim() || "Untitled"}
+          prepare={flushSaves}
+          onClose={() => setAiOpen(false)}
         />
       )}
     </>
