@@ -2,10 +2,12 @@
 
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Bell, CheckCheck } from "lucide-react";
+import Link from "next/link";
+import { Bell, CheckCheck, Settings } from "lucide-react";
 import FormAlert from "@/components/auth/FormAlert";
 import NotificationItem from "@/components/notifications/NotificationItem";
 import { useNotifications } from "@/context/NotificationsContext";
+import useWorkspace from "@/hooks/useWorkspace";
 
 const FOCUSABLE = 'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
@@ -16,6 +18,7 @@ const FOCUSABLE = 'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1
 export default function NotificationPanel({ anchorRef, onClose }) {
   const { status, items, unreadCount, error, actionError, reload, refresh, markRead, markAllRead, clearActionError } =
     useNotifications();
+  const { workspace } = useWorkspace();
 
   const titleId = useId();
   const panelRef = useRef(null);
@@ -121,6 +124,8 @@ export default function NotificationPanel({ anchorRef, onClose }) {
     closeRef.current(false);
   }
 
+  const base = `/workspaces/${workspace.id}/notifications`;
+
   return createPortal(
     <div
       ref={panelRef}
@@ -188,6 +193,16 @@ export default function NotificationPanel({ anchorRef, onClose }) {
             ))}
           </ul>
         )}
+      </div>
+
+      <div className="notif-foot">
+        <Link href={base} onClick={() => closeRef.current(false)} className="notif-link">
+          See all notifications
+        </Link>
+        <Link href={`${base}/settings`} onClick={() => closeRef.current(false)} className="notif-link">
+          <Settings size={14} strokeWidth={1.75} aria-hidden="true" />
+          Settings
+        </Link>
       </div>
     </div>,
     document.body
