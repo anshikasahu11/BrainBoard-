@@ -6,6 +6,7 @@ import { isObjectId } from "../utils/objectId.js";
 import { ROLES } from "../constants/roles.js";
 import { announce, emitToUser, kickFromWorkspace } from "../socket/realtime.js";
 import { recordActivity } from "../services/activityService.js";
+import { notify } from "../services/notificationService.js";
 import {
   toMemberDTO,
   sortMembers,
@@ -15,6 +16,9 @@ import {
 
 // What an activity entry says it was about: the person.
 const memberTarget = (user) => ({ type: "member", id: user._id, name: user.name });
+
+// What a notification says it was about: the workspace.
+const workspaceTarget = (workspace) => ({ type: "workspace", id: workspace._id, name: workspace.name });
 
 // Finds the membership for :userId inside the current workspace, or 404.
 async function findTarget(req) {
@@ -76,8 +80,16 @@ export async function addMember(req, res) {
     target: memberTarget(user),
     meta: { role },
   });
+  // And they're told, in their notifications, who added them and as what.
+  await notify({
+    recipientId: user._id,
+    actor: req.user,
+    workspace: req.workspace,
+    kind: "member.added",
+    target: workspaceTarget(req.workspace),
+    meta: { role },
+  });
 
-  // Phase 13: notify the new member.
   res.status(201).json({ member });
 }
 
@@ -100,6 +112,14 @@ export async function updateMemberRole(req, res) {
   await recordActivity(req, {
     action: "member.role_changed",
     target: memberTarget(target.user),
+    meta: { from: previousRole, role: target.role },
+  });
+  await notify({
+    recipientId: target.user._id,
+    actor: req.user,
+    workspace: req.workspace,
+    kind: "member.role_changed",
+    target: workspaceTarget(req.workspace),
     meta: { from: previousRole, role: target.role },
   });
 
@@ -145,6 +165,17 @@ export async function removeMember(req, res) {
     action: isSelf ? "member.left" : "member.removed",
     target: memberTarget(target.user),
   });
+  // 6. Someone who was removed (not someone who chose to leave) gets a notification they can
+  //    still read, even though they've lost the workspace.
+  if (!isSelf) {
+    await notify({
+      recipientId: target.user._id,
+      actor: req.user,
+      workspace: req.workspace,
+      kind: "member.removed",
+      target: workspaceTarget(req.workspace),
+    });
+  }
 
   res.status(204).end();
 }

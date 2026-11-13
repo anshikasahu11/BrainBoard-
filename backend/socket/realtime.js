@@ -50,11 +50,14 @@ export function announce(req, event, payload) {
 }
 
 // Sends an event to one person, on every tab they have open.
-export function emitToUser(userId, event, payload) {
+// exceptSocketId leaves one tab out (the one that just did the thing).
+export function emitToUser(userId, event, payload, { exceptSocketId } = {}) {
   if (!io) return;
 
   try {
-    io.to(userRoom(String(userId))).emit(event, payload);
+    let target = io.to(userRoom(String(userId)));
+    if (exceptSocketId) target = target.except(exceptSocketId);
+    target.emit(event, payload);
   } catch (error) {
     console.error("Real-time message failed:", error.message);
   }

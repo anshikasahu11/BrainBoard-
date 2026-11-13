@@ -5,9 +5,11 @@ import DocumentVersion from "../models/DocumentVersion.js";
 import Task from "../models/Task.js";
 import Snippet from "../models/Snippet.js";
 import Activity from "../models/Activity.js";
+import Notification from "../models/Notification.js";
 
 // Deleting a workspace must remove everything that belongs to it.
-// Later phases add one line each here (notifications...).
+// (The AI usage ledger is deliberately NOT removed: it holds no content, and deleting it
+// would let someone reset their daily limits by deleting and recreating a workspace.)
 export async function deleteWorkspaceCascade(workspaceId) {
   // The workspace goes first, so nobody can reach a half-deleted workspace
   // if the cleanup below is interrupted.
@@ -18,6 +20,8 @@ export async function deleteWorkspaceCascade(workspaceId) {
   await Task.deleteMany({ workspace: workspaceId });
   await Snippet.deleteMany({ workspace: workspaceId });
   await Activity.deleteMany({ workspace: workspaceId });
+  // A notification about a workspace that no longer exists points nowhere.
+  await Notification.deleteMany({ workspace: workspaceId });
 }
 
 // The shape the frontend receives. Never send raw database objects.

@@ -7,6 +7,7 @@ import { THROTTLE_MS } from "../constants/activity.js";
 import { PRIORITIES, STATUSES } from "../constants/tasks.js";
 import { announce } from "../socket/realtime.js";
 import { recordActivity } from "../services/activityService.js";
+import { notify } from "../services/notificationService.js";
 import {
   assertWorkspaceMember,
   endPosition,
@@ -22,8 +23,19 @@ const POPULATE = [
 const notFound = () => new AppError(404, "Task not found");
 const asText = (value) => (typeof value === "string" ? value : "");
 
-// What an activity entry says it was about.
+// What an activity entry or a notification says it was about.
 const taskTarget = (task) => ({ type: "task", id: task._id, name: task.title });
+
+// Tells the new assignee (never the person who did the assigning, if that's the same person).
+const notifyAssignee = (req, task, assigneeId) =>
+  notify({
+    recipientId: assigneeId,
+    actor: req.user,
+    workspace: req.workspace,
+    kind: "task.assigned",
+    target: taskTarget(task),
+    meta: { priority: task.priority, dueDate: task.dueDate ?? null },
+  });
 
 // "2026-12-31": the right shape AND a real calendar date (no February 30th).
 function isRealDate(value) {
@@ -149,8 +161,8 @@ export async function createTask(req, res) {
   const dto = toTaskDTO(task);
   announce(req, "task:created", { task: dto });
   await recordActivity(req, { action: "task.created", target: taskTarget(task) });
+  if (assignee) await notifyAssignee(req, task, assignee);
 
-  // Phase 13: notify the assignee.
   res.status(201).json({ task: dto });
 }
 
@@ -221,6 +233,7 @@ export async function updateTask(req, res) {
         target,
         meta: { assigneeId: assigneeNow, assigneeName: task.assignee.name },
       });
+      await notifyAssignee(req, task, assigneeNow);
     } else {
       await recordActivity(req, { action: "task.unassigned", target });
     }
@@ -234,7 +247,6 @@ export async function updateTask(req, res) {
     await recordActivity(req, { action: "task.updated", target, throttleMs: THROTTLE_MS });
   }
 
-  // Phase 13: notify a new assignee.
   res.json({ task: dto });
 }
 
