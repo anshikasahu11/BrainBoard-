@@ -33,7 +33,7 @@ export default function SnippetsPanel() {
   const list = useSnippets(workspace.id, { q: debouncedQuery, language, tag });
   const tags = useLoad(`snippet-tags:${workspace.id}`, () => listTagsRequest(workspace.id));
 
-  // { mode: "view", id } | { mode: "form", snippet? } | null
+  // { mode: "view", id } | { mode: "form", snippet?, suggestedCode? } | null
   const [dialog, setDialog] = useState(null);
   const [notice, setNotice] = useState("");
 
@@ -220,7 +220,9 @@ export default function SnippetsPanel() {
           workspaceId={workspace.id}
           role={role}
           userId={user.id}
-          onEdit={(snippet) => setDialog({ mode: "form", snippet })}
+          onEdit={(snippet, extra) =>
+            setDialog({ mode: "form", snippet, suggestedCode: extra?.suggestedCode })
+          }
           onDeleted={(snippet) => finish(`“${snippet.title}” was deleted.`)}
           onGone={() => finish("That snippet no longer exists.")}
           onClose={() => setDialog(null)}
@@ -231,6 +233,7 @@ export default function SnippetsPanel() {
         <SnippetForm
           key={dialog.snippet?.id ?? "new"}
           snippet={dialog.snippet}
+          suggestedCode={dialog.suggestedCode}
           workspaceId={workspace.id}
           onSaved={(snippet, verb) => finish(`“${snippet.title}” was ${verb}.`)}
           onGone={() => finish("That snippet no longer exists.")}

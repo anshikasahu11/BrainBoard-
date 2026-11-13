@@ -15,10 +15,11 @@ import {
 } from "@dnd-kit/core";
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useReducedMotion } from "motion/react";
-import { ListChecks, Plus } from "lucide-react";
+import { ListChecks, Plus, Sparkles } from "lucide-react";
 import PageHeading from "@/components/app/PageHeading";
 import Reveal from "@/components/Reveal";
 import FormAlert from "@/components/auth/FormAlert";
+import NotesToTasksDialog from "@/components/ai/NotesToTasksDialog";
 import { EmptyHint } from "@/components/dashboard/DashboardCard";
 import DeepLink from "@/components/search/DeepLink";
 import BoardColumn from "@/components/tasks/BoardColumn";
@@ -34,6 +35,7 @@ import useTasks from "@/hooks/useTasks";
 import useWorkspace from "@/hooks/useWorkspace";
 import { getTaskRequest, moveTaskRequest } from "@/services/taskService";
 import { STATUSES, statusInfo } from "@/lib/tasks";
+import { countLabel } from "@/lib/taskDrafts";
 import {
   applyGroups,
   findColumn,
@@ -66,6 +68,7 @@ export default function TaskBoard() {
   const board = useTasks(workspace.id, { q: debouncedQuery, priority, assignee });
 
   const [dialog, setDialog] = useState(null); // { task } to edit, { status } to create, or null
+  const [notesDialog, setNotesDialog] = useState(null); // { type: "text" } | { type: "document", id } | null
   const [notice, setNotice] = useState("");
 
   // Drag state. While a card is being dragged, the board draws from `drag.groups`
@@ -300,6 +303,13 @@ export default function TaskBoard() {
     board.reload();
   }
 
+  // Tasks were added from the review screen: the board shows them straight away.
+  function handleNotesAdded(count) {
+    setNotesDialog(null);
+    setNotice(`Added ${countLabel(count)} from your notes.`);
+    board.reload();
+  }
+
   // A search result for a task sends you here with ?task=<id>. The task is fetched by its id,
   // so this works whatever the board is showing (filters, still loading, a long list).
   async function openTaskById(id) {
@@ -328,6 +338,15 @@ export default function TaskBoard() {
     <div>
       <DeepLink param="task" onOpen={openTaskById} />
 
+      {/* A document's AI panel sends you here with ?notes=<document id>: propose tasks from it. */}
+      <DeepLink
+        param="notes"
+        onOpen={(id) => {
+          setNotice("");
+          setNotesDialog({ type: "document", id });
+        }}
+      />
+
       <PageHeading
         eyebrow="Tasks"
         title="Your board"
@@ -351,6 +370,15 @@ export default function TaskBoard() {
             active={filtersActive}
             onClear={clearFilters}
           />
+
+          <button
+            type="button"
+            onClick={() => setNotesDialog({ type: "text" })}
+            className="btn-ghost inline-flex h-11 shrink-0 items-center gap-2 rounded-control px-4 text-sm"
+          >
+            <Sparkles size={15} strokeWidth={1.5} aria-hidden="true" />
+            From notes
+          </button>
 
           <button
             type="button"
@@ -480,6 +508,17 @@ export default function TaskBoard() {
           onDeleted={handleDeleted}
           onGone={handleGone}
           onClose={() => setDialog(null)}
+        />
+      )}
+
+      {notesDialog && (
+        <NotesToTasksDialog
+          key={notesDialog.type === "document" ? notesDialog.id : "text"}
+          workspaceId={workspace.id}
+          source={notesDialog}
+          members={people.members}
+          onAdded={handleNotesAdded}
+          onClose={() => setNotesDialog(null)}
         />
       )}
     </div>

@@ -19,6 +19,7 @@ const TABS = [
 ];
 
 // Opens one snippet with its FULL code. Mount it only while it's open.
+//   onEdit(snippet, extra): opens the edit form. extra.suggestedCode is code to fill in for review.
 export default function SnippetViewer({
   snippetId,
   workspaceId,
@@ -170,7 +171,12 @@ export default function SnippetViewer({
           )}
           {opened.improve && (
             <div hidden={tab !== "improve"}>
-              <SnippetAi workspaceId={workspaceId} snippet={snippet} mode="improve" />
+              <SnippetAi
+                workspaceId={workspaceId}
+                snippet={snippet}
+                mode="improve"
+                onUseCode={(code) => onEdit(snippet, { suggestedCode: code })}
+              />
             </div>
           )}
 

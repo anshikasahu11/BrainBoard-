@@ -2222,3 +2222,17 @@ button.tag-chip:hover {
   line-height: 1.6;
   color: var(--color-fg-muted);
 }
+/* ---------- AI task proposals ---------- */
+
+.proposal-row {
+  padding: 14px;
+  border-radius: 12px;
+  border: 0.5px solid var(--color-line-strong);
+  background: rgb(255 255 255 / 0.04);
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+
+/* An unticked proposal is dimmed, so it's clear it won't be added */
+.proposal-row-off {
+  opacity: 0.55;
+}

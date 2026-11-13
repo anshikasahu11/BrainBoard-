@@ -10,7 +10,8 @@ import { GOALS } from "@/lib/ai";
 
 // The AI tabs of the snippet viewer: "explain" or "improve". It reads the saved snippet on the
 // server, so nothing here needs sending from the browser except which snippet and which goal.
-export default function SnippetAi({ workspaceId, snippet, mode }) {
+//   onUseCode(code): opens the improved code in the editor for review (improve only).
+export default function SnippetAi({ workspaceId, snippet, mode, onUseCode }) {
   const improving = mode === "improve";
   const goalId = useId();
 
@@ -86,6 +87,7 @@ export default function SnippetAi({ workspaceId, snippet, mode }) {
                 warnings={action.meta?.warnings}
                 language={snippet.language}
                 title={snippet.title}
+                onUseCode={onUseCode}
               />
             )}
           </div>

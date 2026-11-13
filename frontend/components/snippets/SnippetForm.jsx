@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle, Loader2, Sparkles } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import TextField from "@/components/auth/TextField";
 import FormAlert from "@/components/auth/FormAlert";
@@ -9,8 +9,11 @@ import { LANGUAGES, MAX_CODE_LENGTH, MAX_TAGS, parseTags, sameList } from "@/lib
 import { createSnippetRequest, updateSnippetRequest } from "@/services/snippetService";
 
 // snippet: the FULL snippet being edited (with its code), or undefined to create one.
+// suggestedCode: code to fill into the box instead of the saved code (the AI's improvement).
+//   It's only a starting point: the form still compares against the SAVED code, so nothing
+//   is saved until the person presses Save, and Cancel keeps the original.
 // Mount it only while it's open: that also resets the form each time.
-export default function SnippetForm({ snippet, workspaceId, onSaved, onGone, onReload, onClose }) {
+export default function SnippetForm({ snippet, suggestedCode, workspaceId, onSaved, onGone, onReload, onClose }) {
   const editing = Boolean(snippet);
   const baseId = useId();
   const id = (name) => `${baseId}-${name}`;
@@ -24,7 +27,11 @@ export default function SnippetForm({ snippet, workspaceId, onSaved, onGone, onR
     code: snippet?.code ?? "",
   }));
 
-  const [values, setValues] = useState(() => ({ ...initial, tags: initial.tags.join(", ") }));
+  const [values, setValues] = useState(() => ({
+    ...initial,
+    tags: initial.tags.join(", "),
+    code: suggestedCode ?? initial.code,
+  }));
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -171,6 +178,16 @@ export default function SnippetForm({ snippet, workspaceId, onSaved, onGone, onR
         )}
 
         <FormAlert message={formError} />
+
+        {suggestedCode !== undefined && (
+          <div className="ai-box flex gap-3 text-[12.5px] leading-relaxed text-fg-2">
+            <Sparkles size={15} strokeWidth={1.5} className="mt-0.5 shrink-0 text-fg-muted" aria-hidden="true" />
+            <p>
+              The AI’s suggested code is filled in below, but nothing is saved yet. Read it carefully,
+              change what you like, then save. Cancel keeps your original code.
+            </p>
+          </div>
+        )}
 
         <TextField
           label="Title"

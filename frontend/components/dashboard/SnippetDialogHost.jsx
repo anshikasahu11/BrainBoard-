@@ -24,7 +24,9 @@ export default function SnippetDialogHost({ start, onChanged, onClose }) {
         workspaceId={workspace.id}
         role={role}
         userId={user.id}
-        onEdit={(snippet) => setDialog({ mode: "form", snippet })}
+        onEdit={(snippet, extra) =>
+          setDialog({ mode: "form", snippet, suggestedCode: extra?.suggestedCode })
+        }
         onDeleted={(snippet) => onChanged(`“${snippet.title}” was deleted.`)}
         onGone={() => onChanged("That snippet no longer exists.")}
         onClose={onClose}
@@ -36,6 +38,7 @@ export default function SnippetDialogHost({ start, onChanged, onClose }) {
     <SnippetForm
       key={dialog.snippet?.id ?? "new"}
       snippet={dialog.snippet}
+      suggestedCode={dialog.suggestedCode}
       workspaceId={workspace.id}
       onSaved={(snippet, verb) => onChanged(`“${snippet.title}” was ${verb}.`)}
       onGone={() => onChanged("That snippet no longer exists.")}

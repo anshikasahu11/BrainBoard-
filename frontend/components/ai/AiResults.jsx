@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Pencil } from "lucide-react";
 import CodeBlock from "@/components/snippets/CodeBlock";
 import CopyButton from "@/components/snippets/CopyButton";
 import { explanationAsText, summaryAsText } from "@/lib/ai";
@@ -74,7 +74,9 @@ export function ExplanationResult({ result, truncated, title }) {
 }
 
 // The improved code is shown and can be copied, but it is NEVER applied: the snippet is untouched.
-export function ImprovementResult({ result, unchanged, warnings = [], language, title }) {
+// "Review in the editor" opens the normal edit form with this code filled in. Nothing is saved
+// until the person presses Save there.
+export function ImprovementResult({ result, unchanged, warnings = [], language, title, onUseCode }) {
   return (
     <div className="space-y-4">
       {result.summary && <p className="text-[15px] leading-relaxed">{result.summary}</p>}
@@ -119,7 +121,19 @@ export function ImprovementResult({ result, unchanged, warnings = [], language, 
             scrollable
             className="code-block-full"
           />
-          <CopyButton subject={title} what="improved code" getText={() => result.improvedCode} />
+          <div className="flex flex-wrap items-center gap-3">
+            <CopyButton subject={title} what="improved code" getText={() => result.improvedCode} />
+            {onUseCode && (
+              <button
+                type="button"
+                onClick={() => onUseCode(result.improvedCode)}
+                className="copy-btn text-fg-2 hover:text-fg"
+              >
+                <Pencil size={14} strokeWidth={1.75} aria-hidden="true" />
+                Review in the editor
+              </button>
+            )}
+          </div>
         </div>
       )}
 
