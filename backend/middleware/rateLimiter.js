@@ -36,3 +36,13 @@ export const searchLimiter = rateLimit({
   legacyHeaders: false,
   message: { message: "Too many searches. Please wait a moment." },
 });
+
+// AI requests are slow and limited by daily budgets (see ai/limits.js). This is only a flood
+// guard for one network address, on top of those.
+export const aiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 100,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { message: "Too many AI requests. Please wait a moment." },
+});
