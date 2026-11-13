@@ -11,6 +11,7 @@ import { NAV_ITEMS } from "@/components/app/navItems";
 import SearchButton from "@/components/search/SearchButton";
 import useAuth from "@/hooks/useAuth";
 import useWorkspace from "@/hooks/useWorkspace";
+import { clearAllRecentSearches } from "@/lib/recentSearches";
 
 const GROUPS = [
   { key: "work", label: "Workspace" },
@@ -29,6 +30,8 @@ export default function Sidebar({ onNavigate }) {
 
   function handleLogout() {
     onNavigate?.();
+    // A shared computer shouldn't keep your recent searches.
+    clearAllRecentSearches();
     logout();
     router.replace("/");
   }

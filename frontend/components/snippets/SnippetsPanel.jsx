@@ -6,6 +6,7 @@ import PageHeading from "@/components/app/PageHeading";
 import Reveal from "@/components/Reveal";
 import FormAlert from "@/components/auth/FormAlert";
 import { EmptyHint } from "@/components/dashboard/DashboardCard";
+import DeepLink from "@/components/search/DeepLink";
 import SnippetCard from "@/components/snippets/SnippetCard";
 import SnippetFilters from "@/components/snippets/SnippetFilters";
 import SnippetForm from "@/components/snippets/SnippetForm";
@@ -89,6 +90,15 @@ export default function SnippetsPanel() {
 
   return (
     <div>
+      {/* A search result for a snippet sends you here with ?snippet=<id>: open it. */}
+      <DeepLink
+        param="snippet"
+        onOpen={(id) => {
+          setNotice("");
+          setDialog({ mode: "view", id });
+        }}
+      />
+
       <PageHeading
         eyebrow="Snippets"
         title="Your code"

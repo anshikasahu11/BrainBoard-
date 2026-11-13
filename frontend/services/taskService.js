@@ -18,6 +18,10 @@ export const listTasksRequest = (workspaceId, filters = {}) => {
 export const getTaskStatsRequest = (workspaceId, today) =>
   apiFetch(`${base(workspaceId)}/stats?today=${encodeURIComponent(today)}`);
 
+// One task by its id (a search result opens a task this way, whatever the board is showing).
+export const getTaskRequest = (workspaceId, taskId) =>
+  apiFetch(`${base(workspaceId)}/${encodeURIComponent(taskId)}`);
+
 export const createTaskRequest = (workspaceId, data) =>
   apiFetch(base(workspaceId), { method: "POST", body: JSON.stringify(data) });
 

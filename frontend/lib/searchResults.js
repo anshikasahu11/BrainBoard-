@@ -12,7 +12,7 @@ export const GROUPS = [
   { key: "members", type: "member", label: "People" },
 ];
 
-// Where a result leads. Documents have their own page. The others open the page they live on.
+// The PAGE a result lives on. Documents have their own page. The others open the page they live on.
 export function resultHref(type, item, workspaceId) {
   const base = `/workspaces/${workspaceId}`;
 
@@ -23,6 +23,28 @@ export function resultHref(type, item, workspaceId) {
       return `${base}/tasks`;
     case "snippet":
       return `${base}/snippets`;
+    case "member":
+      return `${base}/members`;
+    default:
+      return base;
+  }
+}
+
+// The EXACT place a result opens. A task or snippet opens that one, through the address:
+//   /tasks?task=<id>    /snippets?snippet=<id>
+// (The page reads it, opens the item, and removes it from the address.)
+// Without an id it falls back to the page.
+export function deepLinkHref(type, item, workspaceId) {
+  const base = `/workspaces/${workspaceId}`;
+  const id = item?.id ? encodeURIComponent(item.id) : "";
+
+  switch (type) {
+    case "document":
+      return id ? `${base}/documents/${id}` : `${base}/documents`;
+    case "task":
+      return id ? `${base}/tasks?task=${id}` : `${base}/tasks`;
+    case "snippet":
+      return id ? `${base}/snippets?snippet=${id}` : `${base}/snippets`;
     case "member":
       return `${base}/members`;
     default:

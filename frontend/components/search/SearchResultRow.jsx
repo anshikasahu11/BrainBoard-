@@ -31,13 +31,15 @@ function detailLine(option) {
   return "";
 }
 
-// One result in the list (or one page, in the "Go to" list). It's an option in a listbox:
-// focus stays in the search box, and the highlighted option is announced from there.
+// One entry in the list: a search result, a page in the "Go to" list, or a recent search.
+// It's an option in a listbox: focus stays in the search box, and the highlighted option
+// is announced from there.
 //   query: the search these results belong to, for highlighting
 export default function SearchResultRow({ option, id, active, query, onChoose, onHover }) {
   const { type, item } = option;
-  const isPage = type === "page";
-  const Icon = isPage ? item.icon : ICONS[type];
+
+  // Pages and recent searches bring their own icon.
+  const Icon = item.icon ?? ICONS[type];
 
   const matchedLabel = MATCHED_IN[item.matchedIn];
   const detail = [detailLine(option), matchedLabel ? `matched in ${matchedLabel}` : ""]
@@ -62,7 +64,7 @@ export default function SearchResultRow({ option, id, active, query, onChoose, o
           <Highlighted text={item.title} query={query} />
         </span>
 
-        {!isPage && item.excerpt && (
+        {item.excerpt && (
           <span
             className={`mt-0.5 line-clamp-2 block text-[12.5px] leading-relaxed text-fg-2 ${
               item.matchedIn === "code" ? "font-mono" : ""

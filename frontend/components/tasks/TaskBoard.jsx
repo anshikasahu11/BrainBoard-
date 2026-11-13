@@ -20,6 +20,7 @@ import PageHeading from "@/components/app/PageHeading";
 import Reveal from "@/components/Reveal";
 import FormAlert from "@/components/auth/FormAlert";
 import { EmptyHint } from "@/components/dashboard/DashboardCard";
+import DeepLink from "@/components/search/DeepLink";
 import BoardColumn from "@/components/tasks/BoardColumn";
 import { TaskCardPreview } from "@/components/tasks/TaskCard";
 import TaskDialog from "@/components/tasks/TaskDialog";
@@ -31,7 +32,7 @@ import useLiveEvents from "@/hooks/useLiveEvents";
 import useMembers from "@/hooks/useMembers";
 import useTasks from "@/hooks/useTasks";
 import useWorkspace from "@/hooks/useWorkspace";
-import { moveTaskRequest } from "@/services/taskService";
+import { getTaskRequest, moveTaskRequest } from "@/services/taskService";
 import { STATUSES, statusInfo } from "@/lib/tasks";
 import {
   applyGroups,
@@ -299,6 +300,19 @@ export default function TaskBoard() {
     board.reload();
   }
 
+  // A search result for a task sends you here with ?task=<id>. The task is fetched by its id,
+  // so this works whatever the board is showing (filters, still loading, a long list).
+  async function openTaskById(id) {
+    setNotice("");
+
+    try {
+      const { task } = await getTaskRequest(workspace.id, id);
+      setDialog({ task });
+    } catch (error) {
+      setNotice(error.status === 404 ? "That task no longer exists." : error.message);
+    }
+  }
+
   // What screen readers hear when the board changes.
   let summary = "";
   if (board.status === "ready" && !board.refreshing) {
@@ -312,6 +326,8 @@ export default function TaskBoard() {
 
   return (
     <div>
+      <DeepLink param="task" onOpen={openTaskById} />
+
       <PageHeading
         eyebrow="Tasks"
         title="Your board"

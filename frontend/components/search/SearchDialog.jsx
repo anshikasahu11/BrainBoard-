@@ -2,15 +2,18 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Search, SearchX, X } from "lucide-react";
+import { History, Loader2, Search, SearchX, X } from "lucide-react";
 import FormAlert from "@/components/auth/FormAlert";
 import { NAV_ITEMS } from "@/components/app/navItems";
 import SearchResultRow from "@/components/search/SearchResultRow";
+import useAuth from "@/hooks/useAuth";
 import useDebounce from "@/hooks/useDebounce";
 import useWorkspace from "@/hooks/useWorkspace";
 import useWorkspaceSearch from "@/hooks/useWorkspaceSearch";
+import { clearRecentSearches, loadRecent, saveRecentSearch } from "@/lib/recentSearches";
 import {
   MIN_QUERY_LENGTH,
+  deepLinkHref,
   flattenResults,
   groupedOptions,
   moveIndex,
@@ -25,16 +28,19 @@ import {
 export default function SearchDialog({ onClose }) {
   const router = useRouter();
   const { workspace } = useWorkspace();
+  const { user } = useAuth();
   const uid = useId();
   const listboxId = `${uid}-results`;
   const optionId = (index) => `${uid}-option-${index}`;
 
+  const panelRef = useRef(null);
   const inputRef = useRef(null);
-  const closeRef = useRef(null);
   const navigatedRef = useRef(false); // we left for another page, so focus shouldn't go back
 
   const [input, setInput] = useState("");
   const [highlight, setHighlight] = useState({ key: "", index: 0 });
+  const [recent, setRecent] = useState(() => loadRecent(user.id, workspace.id));
+  const [notice, setNotice] = useState("");
 
   // What was typed, with extra spaces squashed. Searching starts a moment after you stop typing.
   const typed = input.replace(/\s+/g, " ").trim();
@@ -48,7 +54,7 @@ export default function SearchDialog({ onClose }) {
   const refreshing = searching && search.status === "loading" && Boolean(data);
   const failed = searching && search.status === "error";
 
-  // Before you type, the window is a quick-jump menu.
+  // Before you type, the window shows your recent searches and a quick-jump menu.
   const pageOptions = useMemo(
     () =>
       NAV_ITEMS.filter((item) => !item.soon).map((item) => ({
@@ -60,10 +66,21 @@ export default function SearchDialog({ onClose }) {
     [workspace.id]
   );
 
+  const recentOptions = useMemo(
+    () =>
+      recent.map((query) => ({
+        type: "recent",
+        group: "recent",
+        item: { id: `recent:${query}`, title: query, icon: History },
+        href: null,
+      })),
+    [recent]
+  );
+
   const options = useMemo(() => {
-    if (!searching) return pageOptions;
+    if (!searching) return [...recentOptions, ...pageOptions];
     return data ? flattenResults(data.results, workspace.id) : [];
-  }, [searching, pageOptions, data, workspace.id]);
+  }, [searching, recentOptions, pageOptions, data, workspace.id]);
 
   // The highlight goes back to the first entry whenever the list changes.
   const listKey = options.map(optionKey).join(",");
@@ -90,9 +107,31 @@ export default function SearchDialog({ onClose }) {
   }, []);
 
   function choose(option) {
+    // A recent search fills the box and runs again. The window stays open.
+    if (option.type === "recent") {
+      setInput(option.item.title);
+      setNotice("");
+      inputRef.current?.focus();
+      return;
+    }
+
+    // A search that led to something is worth remembering.
+    if (option.type !== "page" && searching && data?.query) {
+      saveRecentSearch(user.id, workspace.id, data.query);
+    }
+
     navigatedRef.current = true;
     onClose();
-    router.push(option.href);
+    router.push(
+      option.type === "page" ? option.href : deepLinkHref(option.type, option.item, workspace.id)
+    );
+  }
+
+  function clearRecent() {
+    clearRecentSearches(user.id, workspace.id);
+    setRecent([]);
+    setNotice("Recent searches cleared.");
+    inputRef.current?.focus();
   }
 
   function handleKeyDown(event) {
@@ -102,10 +141,21 @@ export default function SearchDialog({ onClose }) {
       return;
     }
 
-    // Keep Tab inside the window: it only has the box and the close button.
+    // Keep Tab inside the window: the box, the close button, and "Clear" when it's showing.
     if (event.key === "Tab") {
+      const items = [...(panelRef.current?.querySelectorAll("input, button:not([disabled])") ?? [])];
+      if (items.length === 0) return;
       event.preventDefault();
-      (document.activeElement === inputRef.current ? closeRef : inputRef).current?.focus();
+
+      const at = items.indexOf(document.activeElement);
+      const next = event.shiftKey
+        ? at <= 0
+          ? items.length - 1
+          : at - 1
+        : at === items.length - 1
+          ? 0
+          : at + 1;
+      items[next].focus();
       return;
     }
 
@@ -128,22 +178,40 @@ export default function SearchDialog({ onClose }) {
   // ----- What to draw -----
 
   const query = data?.query ?? "";
-  const groups = searching
-    ? groupedOptions(options, data?.results)
-    : [{ key: "pages", label: "Go to", hasMore: false, entries: options.map((option, index) => ({ option, index })) }];
+
+  let groups;
+  if (searching) {
+    groups = groupedOptions(options, data?.results);
+  } else {
+    groups = [];
+    if (recentOptions.length > 0) {
+      groups.push({
+        key: "recent",
+        label: "Recent searches",
+        hasMore: false,
+        entries: recentOptions.map((option, index) => ({ option, index })),
+      });
+    }
+    groups.push({
+      key: "pages",
+      label: "Go to",
+      hasMore: false,
+      entries: pageOptions.map((option, index) => ({ option, index: recentOptions.length + index })),
+    });
+  }
 
   const waiting = searching && !failed && !data; // first answer on its way
   const noResults = searching && !failed && Boolean(data) && !refreshing && options.length === 0;
   const hasList = options.length > 0 && !failed;
 
   // Read out politely when the answer changes.
-  let announcement = "";
-  if (searching && !failed && data && !refreshing) {
+  let announcement = notice;
+  if (!announcement && searching && !failed && data && !refreshing) {
     announcement =
       options.length === 0
         ? `No results for ${data.query}`
         : `${options.length} ${options.length === 1 ? "result" : "results"}`;
-  } else if (failed) {
+  } else if (!announcement && failed) {
     announcement = "Search failed";
   }
 
@@ -153,7 +221,13 @@ export default function SearchDialog({ onClose }) {
       onMouseDown={(event) => event.target === event.currentTarget && onClose()}
       onKeyDown={handleKeyDown}
     >
-      <div role="dialog" aria-modal="true" aria-label="Search" className="search-panel glass rounded-panel">
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Search"
+        className="search-panel glass rounded-panel"
+      >
         <div className="search-head">
           <Search size={18} strokeWidth={1.5} className="shrink-0 text-fg-muted" aria-hidden="true" />
           <input
@@ -166,7 +240,10 @@ export default function SearchDialog({ onClose }) {
             aria-activedescendant={hasList && activeIndex >= 0 ? optionId(activeIndex) : undefined}
             aria-autocomplete="list"
             value={input}
-            onChange={(event) => setInput(event.target.value)}
+            onChange={(event) => {
+              setInput(event.target.value);
+              setNotice("");
+            }}
             maxLength={100}
             placeholder="Search documents, tasks, snippets and people"
             autoComplete="off"
@@ -181,7 +258,6 @@ export default function SearchDialog({ onClose }) {
             Esc
           </kbd>
           <button
-            ref={closeRef}
             type="button"
             onClick={onClose}
             aria-label="Close search"
@@ -239,7 +315,7 @@ export default function SearchDialog({ onClose }) {
             <ul
               role="listbox"
               id={listboxId}
-              aria-label={searching ? "Search results" : "Go to"}
+              aria-label={searching ? "Search results" : "Recent searches and pages"}
               className={`transition-opacity duration-150 ${refreshing ? "opacity-60" : ""}`}
             >
               {groups.map((group) => {
@@ -272,6 +348,19 @@ export default function SearchDialog({ onClose }) {
                 );
               })}
             </ul>
+          )}
+
+          {!searching && recent.length > 0 && (
+            <div className="px-3 pb-2 pt-2">
+              <button
+                type="button"
+                onClick={clearRecent}
+                className="text-[12px] text-fg-2 underline underline-offset-4 transition-colors hover:text-ember-300"
+              >
+                Clear recent searches
+              </button>
+              <p className="mt-1 text-[11.5px] text-fg-muted">Saved only in this browser.</p>
+            </div>
           )}
         </div>
 
