@@ -2236,3 +2236,149 @@ button.tag-chip:hover {
 .proposal-row-off {
   opacity: 0.55;
 }
+/* ---------- Notifications ---------- */
+
+.notif-bell {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-control);
+  color: var(--color-fg-2);
+  transition:
+    background var(--dur-base) var(--ease-out),
+    color var(--dur-base) var(--ease-out);
+}
+.notif-bell:hover {
+  background: rgb(255 255 255 / 0.1);
+  color: var(--color-fg);
+}
+
+/* The unread count, in the corner of the bell */
+.notif-badge {
+  position: absolute;
+  top: 1px;
+  right: 0;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 9999px;
+  background: var(--color-ember-500);
+  color: var(--color-on-ember);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 17px;
+  text-align: center;
+  box-shadow: 0 0 0 2px rgb(9 8 12 / 0.9);
+}
+
+/* The dropdown. It's positioned by the screen (left, top, width), on top of everything. */
+.notif-panel {
+  position: fixed;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 20px;
+  border: 0.5px solid var(--color-line-strong);
+  background: rgb(17 13 15 / 0.96);
+  backdrop-filter: blur(18px);
+  box-shadow:
+    0 24px 60px rgb(0 0 0 / 0.5),
+    inset 0 1px 0 rgb(255 255 255 / 0.07);
+  animation: dialog-in 0.18s var(--ease-out) both;
+}
+.notif-panel:focus {
+  outline: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .notif-panel {
+    animation: none;
+  }
+}
+
+.notif-head {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 16px 12px;
+  border-bottom: 0.5px solid var(--color-line);
+}
+
+.notif-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* "Mark all as read" */
+.notif-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: var(--radius-chip);
+  font-size: 12.5px;
+  color: var(--color-fg-2);
+  transition:
+    background var(--dur-base) var(--ease-out),
+    color var(--dur-base) var(--ease-out);
+}
+.notif-link:hover:not(:disabled) {
+  background: rgb(255 255 255 / 0.08);
+  color: var(--color-ember-300);
+}
+.notif-link:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  border-top: 0.5px solid var(--color-line);
+  transition: background var(--dur-base) var(--ease-out);
+}
+li:first-child > .notif-item {
+  border-top: none;
+}
+.notif-item:hover {
+  background: rgb(255 255 255 / 0.06);
+}
+.notif-item-unread {
+  background: rgb(239 106 69 / 0.07);
+}
+.notif-item:focus-visible,
+.notif-bell:focus-visible,
+.notif-link:focus-visible {
+  outline: 2px solid var(--color-ember-300);
+  outline-offset: -2px;
+}
+
+.notif-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  background: rgb(255 255 255 / 0.07);
+}
+
+/* The "unread" dot */
+.notif-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border-radius: 9999px;
+  background: var(--color-ember-500);
+}

@@ -8,6 +8,7 @@ import LiveIndicator from "@/components/app/LiveIndicator";
 import OnlineAvatars from "@/components/app/OnlineAvatars";
 import WorkspaceSwitcher from "@/components/app/WorkspaceSwitcher";
 import { NAV_ITEMS } from "@/components/app/navItems";
+import NotificationBell from "@/components/notifications/NotificationBell";
 import SearchButton from "@/components/search/SearchButton";
 import useAuth from "@/hooks/useAuth";
 import useWorkspace from "@/hooks/useWorkspace";
@@ -20,7 +21,8 @@ const GROUPS = [
 
 // Shared by the desktop sidebar and the mobile drawer.
 // onNavigate lets the drawer close itself when you pick something.
-export default function Sidebar({ onNavigate }) {
+// bell: show the notification bell. The phone drawer turns it off, because the top bar already has one.
+export default function Sidebar({ onNavigate, bell = true }) {
   const { user, logout } = useAuth();
   const { workspace } = useWorkspace();
   const pathname = usePathname();
@@ -77,7 +79,10 @@ export default function Sidebar({ onNavigate }) {
 
   return (
     <div className="flex min-h-full flex-col gap-6 p-4">
-      <Logo className="px-2 pt-1" />
+      <div className="flex items-center justify-between gap-2">
+        <Logo className="px-2 pt-1" />
+        {bell && <NotificationBell />}
+      </div>
 
       <div className="space-y-3">
         <WorkspaceSwitcher onNavigate={onNavigate} />
