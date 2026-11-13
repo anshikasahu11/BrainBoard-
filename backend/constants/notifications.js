@@ -9,6 +9,18 @@ export const KINDS = {
     throttleMs: 10 * 60 * 1000, // assigning the same task to you again within 10 minutes counts once
     recipientMustBeMember: true,
   },
+  "task.due_soon": {
+    label: "Tasks due soon",
+    description: "When a task assigned to you is due today or tomorrow.",
+    throttleMs: 0, // protected instead by a once-only key (see services/reminderService.js)
+    recipientMustBeMember: true,
+  },
+  "task.overdue": {
+    label: "Overdue tasks",
+    description: "When a task assigned to you has passed its due date.",
+    throttleMs: 0, // protected instead by a once-only key (see services/reminderService.js)
+    recipientMustBeMember: true,
+  },
   "member.added": {
     label: "Added to a workspace",
     description: "When someone adds you to a workspace.",

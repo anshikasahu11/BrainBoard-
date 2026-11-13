@@ -13,8 +13,9 @@ const notificationSchema = new mongoose.Schema(
     workspaceName: { type: String, required: true, maxlength: 50 },
 
     // Who caused it. The name is kept as it was at that moment.
-    actor: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    actorName: { type: String, required: true, maxlength: 50 },
+    // A reminder isn't done by anyone, so for those the actor is null.
+    actor: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+    actorName: { type: String, default: "", maxlength: 50 },
 
     kind: { type: String, enum: KIND_LIST, required: true },
 

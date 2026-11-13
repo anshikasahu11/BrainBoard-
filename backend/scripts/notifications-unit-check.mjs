@@ -34,8 +34,8 @@ console.log("Checking the notification rules\n");
 
 // ---------- 1. The kinds ----------
 check(
-  "These are the four kinds, in this order",
-  same(KIND_LIST, ["task.assigned", "member.added", "member.role_changed", "member.removed"]),
+  "These are the kinds, in this order",
+  same(KIND_LIST, ["task.assigned", "task.due_soon", "task.overdue", "member.added", "member.role_changed", "member.removed"]),
   KIND_LIST.join(",")
 );
 check(
@@ -138,7 +138,7 @@ check("A decimal is cut to a whole number", pageSize("7.9") === 7);
 const everythingOn = preferenceList();
 check(
   "With nothing muted, everything is on, in order",
-  everythingOn.length === 4 && everythingOn.every((item) => item.enabled === true) && same(everythingOn.map((item) => item.kind), KIND_LIST)
+  everythingOn.length === KIND_LIST.length && everythingOn.every((item) => item.enabled === true) && same(everythingOn.map((item) => item.kind), KIND_LIST)
 );
 check(
   "Each setting has exactly these fields",

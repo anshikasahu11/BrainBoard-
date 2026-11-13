@@ -8,6 +8,7 @@
 //   node scripts/notifications-check.mjs
 
 import { io } from "socket.io-client";
+import { KIND_LIST } from "../constants/notifications.js";
 
 const API = process.env.API_URL || "http://localhost:5000";
 const PASSWORD = "Password123";
@@ -358,15 +359,15 @@ async function main() {
     const prefs0 = (await api("GET", "/api/notifications/preferences", { token: temp.token })).data.preferences;
     check(
       "Settings list every kind, all on, with a label and a description",
-      prefs0.length === 4 &&
+      prefs0.length === KIND_LIST.length &&
         prefs0.every((item) => item.enabled === true && item.label && item.description && same(Object.keys(item).sort(), ["description", "enabled", "kind", "label"])) &&
-        same(prefs0.map((item) => item.kind), ["task.assigned", "member.added", "member.role_changed", "member.removed"])
+        same(prefs0.map((item) => item.kind), KIND_LIST)
     );
 
     const mute = await api("PUT", "/api/notifications/preferences/task.assigned", { token: temp.token, body: { enabled: false } });
     check(
       "Switching a kind off works, and only that one changes",
-      mute.status === 200 && mute.data.preferences.find((item) => item.kind === "task.assigned").enabled === false && mute.data.preferences.filter((item) => item.enabled).length === 3
+      mute.status === 200 && mute.data.preferences.find((item) => item.kind === "task.assigned").enabled === false && mute.data.preferences.filter((item) => item.enabled).length === KIND_LIST.length - 1
     );
     check(
       "It is remembered",

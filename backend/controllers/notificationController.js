@@ -4,7 +4,7 @@ import AppError from "../utils/AppError.js";
 import { isObjectId } from "../utils/objectId.js";
 import { isKnownKind, pageSize, preferenceList } from "../utils/notificationRules.js";
 import { emitToUser, socketIdFrom } from "../socket/realtime.js";
-import { countUnread, mutedKinds, toNotificationDTO } from "../services/notificationService.js";
+import { countUnread, toNotificationDTO } from "../services/notificationService.js";
 
 const asText = (value) => (typeof value === "string" ? value : "");
 const notFound = () => new AppError(404, "Notification not found");
@@ -109,8 +109,14 @@ export async function deleteNotification(req, res) {
 }
 
 // GET /api/notifications/preferences
+// Every kind with whether it's on, plus the person's time zone (null until one is saved).
 export async function getPreferences(req, res) {
-  res.json({ preferences: preferenceList(await mutedKinds(req.user._id)) });
+  const prefs = await NotificationPreference.findOne({ user: req.user._id }).select("muted timeZone");
+
+  res.json({
+    preferences: preferenceList(prefs?.muted ?? []),
+    timeZone: prefs?.timeZone ?? null,
+  });
 }
 
 // PUT /api/notifications/preferences/:kind   { enabled: true | false }
@@ -126,5 +132,17 @@ export async function setPreference(req, res) {
     { upsert: true, new: true, setDefaultsOnInsert: false }
   );
 
-  res.json({ preferences: preferenceList(prefs.muted ?? []) });
+  res.json({ preferences: preferenceList(prefs.muted ?? []), timeZone: prefs.timeZone ?? null });
+}
+
+// PUT /api/notifications/time-zone   { timeZone: "Asia/Kolkata" }
+// Reminders use it to know what "today" and "tomorrow" mean for this person.
+export async function setTimeZone(req, res) {
+  const prefs = await NotificationPreference.findOneAndUpdate(
+    { user: req.user._id },
+    { $set: { timeZone: req.body.timeZone } },
+    { upsert: true, new: true, setDefaultsOnInsert: false }
+  );
+
+  res.json({ timeZone: prefs.timeZone });
 }

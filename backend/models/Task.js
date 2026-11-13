@@ -25,5 +25,7 @@ taskSchema.index({ workspace: 1, status: 1, position: 1 });
 taskSchema.index({ workspace: 1, assignee: 1, status: 1 });
 // "Recently updated tasks".
 taskSchema.index({ workspace: 1, updatedAt: -1 });
+// The reminder job: "tasks due in this range that aren't done", across all workspaces.
+taskSchema.index({ dueDate: 1, status: 1 });
 
 export default mongoose.model("Task", taskSchema);
