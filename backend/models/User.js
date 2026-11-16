@@ -1,7 +1,6 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
-
-const SALT_ROUNDS = 12;
+import { BCRYPT_ROUNDS } from "../constants/security.js";
 
 const userSchema = new mongoose.Schema(
   {
@@ -23,7 +22,7 @@ const userSchema = new mongoose.Schema(
 // Hash the password before saving, but only when it was set or changed.
 userSchema.pre("save", async function () {
   if (!this.isModified("password")) return;
-  this.password = await bcrypt.hash(this.password, SALT_ROUNDS);
+  this.password = await bcrypt.hash(this.password, BCRYPT_ROUNDS);
 });
 
 userSchema.methods.comparePassword = function (candidate) {

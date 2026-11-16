@@ -17,6 +17,13 @@ app.use(cors({ origin: env.clientUrl, methods: ["GET", "POST", "PUT", "PATCH", "
 app.use(express.json({ limit: "1mb" }));
 app.use(morgan("dev"));
 
+// Everything under /api is private to the signed-in person, so browsers and proxies must never
+// keep a copy. (On a shared computer, a cached answer could be shown to the next person.)
+app.use("/api", (req, res, next) => {
+  res.set("Cache-Control", "no-store");
+  next();
+});
+
 app.use("/api/health", healthRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/workspaces", workspaceRoutes);
