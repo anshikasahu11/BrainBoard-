@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# The checks only read the code, so they get read-only access and no secrets.
+permissions:
+  contents: read
+
+# A newer push cancels the run of an older one on the same branch.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Every check
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    services:
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+    env:
+      # Throwaway values for this test run only. They are not used anywhere else, and the real
+      # secrets are never given to CI.
+      MONGODB_URI: mongodb://localhost:27017/brainboard
+      JWT_SECRET: ci-only-throwaway-secret-0123456789abcdef0123456789abcdef
+      CLIENT_URL: http://localhost:3000
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+
+      - name: Install the backend
+        run: npm ci
+        working-directory: backend
+
+      - name: Install the frontend
+        run: npm ci
+        working-directory: frontend
+
+      - name: Run every check, and build the website
+        run: node tools/check-all.mjs --build
+
+  dependency-audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Reported, but never blocks: a new advisory shouldn't stop unrelated work.
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Backend
+        run: npm audit --omit=dev --audit-level=high
+        working-directory: backend
+
+      - name: Frontend
+        if: always()
+        run: npm audit --omit=dev --audit-level=high
+        working-directory: frontend
