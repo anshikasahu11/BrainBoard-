@@ -3,13 +3,14 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { Bell, CheckCheck, Settings } from "lucide-react";
 import FormAlert from "@/components/auth/FormAlert";
 import NotificationItem from "@/components/notifications/NotificationItem";
 import { useNotifications } from "@/context/NotificationsContext";
-import useWorkspace from "@/hooks/useWorkspace";
 
 const FOCUSABLE = 'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])';
+const OBJECT_ID = /^[a-f0-9]{24}$/i;
 
 // The dropdown. It's drawn on top of the whole page at a fixed position, because the sidebar
 // scrolls and would cut off anything placed inside it. Mount it only while it's open.
@@ -18,7 +19,12 @@ const FOCUSABLE = 'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1
 export default function NotificationPanel({ anchorRef, onClose }) {
   const { status, items, unreadCount, error, actionError, reload, refresh, markRead, markAllRead, clearActionError } =
     useNotifications();
-  const { workspace } = useWorkspace();
+
+  // Inside a workspace, the address says which one, so the footer can link to its notification
+  // pages. On the page that lists your workspaces there isn't one, so those links are left out.
+  const params = useParams();
+  const workspaceId =
+    typeof params?.workspaceId === "string" && OBJECT_ID.test(params.workspaceId) ? params.workspaceId : null;
 
   const titleId = useId();
   const panelRef = useRef(null);
@@ -124,7 +130,7 @@ export default function NotificationPanel({ anchorRef, onClose }) {
     closeRef.current(false);
   }
 
-  const base = `/workspaces/${workspace.id}/notifications`;
+  const base = workspaceId ? `/workspaces/${workspaceId}/notifications` : null;
 
   return createPortal(
     <div
@@ -195,15 +201,17 @@ export default function NotificationPanel({ anchorRef, onClose }) {
         )}
       </div>
 
-      <div className="notif-foot">
-        <Link href={base} onClick={() => closeRef.current(false)} className="notif-link">
-          See all notifications
-        </Link>
-        <Link href={`${base}/settings`} onClick={() => closeRef.current(false)} className="notif-link">
-          <Settings size={14} strokeWidth={1.75} aria-hidden="true" />
-          Settings
-        </Link>
-      </div>
+      {base && (
+        <div className="notif-foot">
+          <Link href={base} onClick={() => closeRef.current(false)} className="notif-link">
+            See all notifications
+          </Link>
+          <Link href={`${base}/settings`} onClick={() => closeRef.current(false)} className="notif-link">
+            <Settings size={14} strokeWidth={1.75} aria-hidden="true" />
+            Settings
+          </Link>
+        </div>
+      )}
     </div>,
     document.body
   );

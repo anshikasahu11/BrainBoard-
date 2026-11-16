@@ -47,7 +47,7 @@ export default function Features() {
             </div>
             <div className="pl-4">
               jwt.<span className="text-petrol-300">verify</span>(token){" "}
-              <span className="text-[#6f8590]">// jwt</span>
+              <span className="text-[#6f8590]">{"// jwt"}</span>
             </div>
           </div>
           <p className="px-5 pb-5 text-[13px] leading-relaxed text-fg-2">

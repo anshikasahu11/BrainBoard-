@@ -4,13 +4,18 @@ import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
 import Logo from "@/components/Logo";
 import useAuth from "@/hooks/useAuth";
+import { clearAllRecentSearches } from "@/lib/recentSearches";
 
 // The top bar for signed-in pages: logo, your name, and log out.
-export default function AppHeader() {
+//   actions: optional extra controls shown before your name (the notification bell uses this).
+//            Pages that have no notification state simply leave it out.
+export default function AppHeader({ actions = null }) {
   const { user, logout } = useAuth();
   const router = useRouter();
 
   function handleLogout() {
+    // A shared computer shouldn't keep your recent searches.
+    clearAllRecentSearches();
     logout();
     router.replace("/");
   }
@@ -21,6 +26,7 @@ export default function AppHeader() {
         <Logo />
 
         <div className="flex items-center gap-4">
+          {actions}
           <span className="hidden text-[13px] text-fg-2 sm:inline">{user.name}</span>
           <button
             type="button"

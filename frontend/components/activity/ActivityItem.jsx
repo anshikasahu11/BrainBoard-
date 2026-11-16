@@ -15,7 +15,7 @@ const ICONS = {
   task: Kanban,
   snippet: Code,
 };
-const iconFor = (action) => ICONS[action.split(".")[0]] ?? FileText;
+// The icon is looked up straight from the list where it is used, so React sees a fixed component.
 
 function Sentence({ segments }) {
   return segments.map((segment, index) => {
@@ -49,7 +49,7 @@ export default function ActivityItem({
   linkTarget = true,
 }) {
   const segments = describeActivity(activity, { workspaceId, userId, linkTarget });
-  const Icon = iconFor(activity.action);
+  const Icon = ICONS[activity.action.split(".")[0]] ?? FileText;
 
   return (
     <li
