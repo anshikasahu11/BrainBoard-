@@ -46,7 +46,11 @@ const real = signToken(ID);
 const payload = verifyToken(real);
 
 check("A real token has three parts", real.split(".").length === 3);
-check("It carries only who, when it was made and when it ends", JSON.stringify(Object.keys(payload).sort()) === JSON.stringify(["exp", "iat", "sub"]), Object.keys(payload).join(","));
+check("It carries who, when it was made, when it ends, and a random token number", JSON.stringify(Object.keys(payload).sort()) === JSON.stringify(["exp", "iat", "jti", "sub"]), Object.keys(payload).join(","));
+check("Two tokens made for the same person at the same moment are different", signToken(ID) !== signToken(ID) && hashToken(signToken(ID)) !== hashToken(signToken(ID)));
+check("A hundred tokens made at once are all different", new Set(Array.from({ length: 100 }, () => signToken(ID))).size === 100);
+check("A token made before this change (no token number) is still accepted, so nobody is signed out by the update", !refused(jwt.sign({ sub: ID }, env.jwtSecret, { algorithm: "HS256", expiresIn: "1h" })));
+check("A token number that isn't text is refused", refused(signRaw({ sub: ID, exp: now() + 3600, jti: 12345 })) && refused(signRaw({ sub: ID, exp: now() + 3600, jti: { $ne: 1 } })));
 check("...and who it is for", payload.sub === ID);
 check("...and it ends later than it began", payload.exp > payload.iat);
 check("An id that isn't text is turned into text", verifyToken(signToken({ toString: () => ID })).sub === ID);

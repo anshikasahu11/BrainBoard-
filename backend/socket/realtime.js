@@ -76,6 +76,30 @@ export async function kickFromWorkspace(userId, workspaceId) {
   }
 }
 
+// Hangs up the live connections that were opened with ONE login token (the person signed that
+// session out). Connections from their other sessions, on other devices, are left alone: each
+// connection remembers a fingerprint of the token it opened with.
+// Never throws. Returns how many connections were closed.
+export async function disconnectSession(userId, tokenHash) {
+  if (!io) return 0;
+
+  try {
+    const sockets = await io.in(userRoom(String(userId))).fetchSockets();
+    let closed = 0;
+
+    for (const socket of sockets) {
+      if (socket.data?.tokenHash === tokenHash) {
+        socket.disconnect(true);
+        closed += 1;
+      }
+    }
+    return closed;
+  } catch (error) {
+    console.error("Closing signed-out connections failed:", error.message);
+    return 0;
+  }
+}
+
 // Empties a workspace's room (the workspace was deleted).
 export function closeWorkspaceRoom(workspaceId) {
   if (!io) return;

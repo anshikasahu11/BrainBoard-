@@ -276,7 +276,7 @@ async function main() {
 
     const login = await api("POST", "/api/auth/login", { body: { email: A.email, password: PASSWORD } });
     const claims = JSON.parse(Buffer.from(String(login.data?.token).split(".")[1] ?? "e30", "base64url").toString("utf8"));
-    check(Object.keys(claims).every((key) => ["sub", "iat", "exp"].includes(key)), "LOW", "Tokens", "a token carries only an id and its dates (no email or role)", `a token carries extra claims: ${Object.keys(claims).join(", ")}`, "anyone holding a token can read what's in it");
+    check(Object.keys(claims).every((key) => ["sub", "iat", "exp", "jti"].includes(key)), "LOW", "Tokens", "a token carries only an id, its dates and a random token number (no email or role)", `a token carries extra claims: ${Object.keys(claims).join(", ")}`, "anyone holding a token can read what's in it");
 
     const lifetimeHours = (claims.exp - claims.iat) / 3600;
     if (lifetimeHours <= 24) pass("Tokens", `login tokens last ${lifetimeHours} hours`);

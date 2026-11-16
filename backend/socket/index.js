@@ -1,10 +1,11 @@
 import { Server } from "socket.io";
 import Document from "../models/Document.js";
 import Membership from "../models/Membership.js";
+import RevokedToken from "../models/RevokedToken.js";
 import User from "../models/User.js";
 import { env } from "../config/env.js";
 import { isObjectId } from "../utils/objectId.js";
-import { verifyToken } from "../utils/token.js";
+import { hashToken, verifyToken } from "../utils/token.js";
 import { broadcastPresence, computePresence } from "./presence.js";
 import { setIo } from "./realtime.js";
 import { isWorkspaceRoom, userRoom, workspaceIdFromRoom, workspaceRoom } from "./rooms.js";
@@ -49,10 +50,17 @@ export function createSocketServer(httpServer) {
         return next(new Error("Invalid or expired token"));
       }
 
+      // A session the person has signed out of can't open a live connection either.
+      const tokenHash = hashToken(token);
+      if (await RevokedToken.exists({ tokenHash })) {
+        return next(new Error("This session has ended"));
+      }
+
       const user = await User.findById(payload.sub).select("name");
       if (!user) return next(new Error("This account no longer exists"));
 
       socket.data.user = { id: user.id, name: user.name };
+      socket.data.tokenHash = tokenHash; // so signing out can hang up exactly this session
       socket.data.expiresAt = payload.exp * 1000;
       socket.data.editing = null; // { workspaceId, documentId } while editing a document
       next();

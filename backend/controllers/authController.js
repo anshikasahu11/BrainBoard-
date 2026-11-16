@@ -3,6 +3,7 @@ import RevokedToken from "../models/RevokedToken.js";
 import User from "../models/User.js";
 import AppError from "../utils/AppError.js";
 import { BCRYPT_ROUNDS } from "../constants/security.js";
+import { disconnectSession } from "../socket/realtime.js";
 import { signToken } from "../utils/token.js";
 
 // A password check takes a few hundred milliseconds. If we only did it for emails that have an
@@ -54,8 +55,9 @@ export async function me(req, res) {
 }
 
 // POST /api/auth/logout  (protected)
-// Ends THIS session's token on the server, so a copy of it stops working at once. Other sessions
-// (another browser, another device) are not affected.
+// Ends THIS session's token on the server, so a copy of it stops working at once, and hangs up
+// the live connections that were opened with it. Other sessions (another browser, another
+// device) are not affected.
 export async function logout(req, res) {
   try {
     await RevokedToken.create({
@@ -67,6 +69,8 @@ export async function logout(req, res) {
     // Already ended: fine. Anything else is a real problem.
     if (error?.code !== 11000) throw error;
   }
+
+  await disconnectSession(req.user.id, req.token.hash);
 
   res.status(204).end();
 }
