@@ -1,0 +1,38 @@
+# Describes the backend service for Render (https://render.com/docs/blueprint-spec).
+#
+# NO SECRETS LIVE HERE. This repository is public. Values marked "sync: false" are typed into Render's
+# dashboard when the service is first created, and they never reach Git.
+services:
+  - type: web
+    name: brainboard-api
+    runtime: node
+    plan: free
+    # Closest to your database. This can't be changed after the service is created.
+    region: singapore
+    rootDir: backend
+    buildCommand: npm ci
+    startCommand: node server.js
+    healthCheckPath: /api/health
+    autoDeployTrigger: commit
+    envVars:
+      # The latest 24.x at each deploy. Render's own default is older than the October 2026 security releases.
+      - key: NODE_VERSION
+        value: "24"
+      - key: NODE_ENV
+        value: production
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      # AI stays off until you switch it on deliberately (AI_PROVIDER=gemini plus GEMINI_API_KEY).
+      - key: AI_ENABLED
+        value: "false"
+      # Typed into the dashboard, and never stored in Git:
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      # Your website's exact address, like https://brainboard.vercel.app
+      - key: CLIENT_URL
+        sync: false
+      # How many proxies sit in front of the server. Measured with scripts/client-ip-check.mjs.
+      - key: TRUST_PROXY
+        sync: false

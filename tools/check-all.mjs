@@ -25,7 +25,7 @@ const API = `http://localhost:${PORT}`;
 const PASSWORD = "Password123";
 
 // Checks that need no servers and no database.
-const BACKEND_UNIT = ["token-unit-check", "ai-unit-check", "ai-actions-unit-check", "notifications-unit-check", "reminders-unit-check", "search-text-check"];
+const BACKEND_UNIT = ["token-unit-check", "ai-unit-check", "ai-actions-unit-check", "notifications-unit-check", "reminders-unit-check", "search-text-check", "production-unit-check"];
 const FRONTEND_UNIT = [
   "diff-check",
   "activity-text-check",
@@ -50,6 +50,8 @@ const MANUAL = {
   "security-audit": "needs both servers, and the real rate limits",
   "activity-demo": "builds demo data",
   "test-db": "a helper for this runner",
+  "client-ip-check": "run by hand against the deployed server",
+  "smoke-check": "run by hand against the deployed server",
 };
 
 const PEOPLE = [

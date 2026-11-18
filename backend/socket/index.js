@@ -3,7 +3,8 @@ import Document from "../models/Document.js";
 import Membership from "../models/Membership.js";
 import RevokedToken from "../models/RevokedToken.js";
 import User from "../models/User.js";
-import { env } from "../config/env.js";
+import { allowedOrigins } from "../config/origins.js";
+import { registerShutdown } from "../config/shutdown.js";
 import { isObjectId } from "../utils/objectId.js";
 import { hashToken, verifyToken } from "../utils/token.js";
 import { broadcastPresence, computePresence } from "./presence.js";
@@ -29,7 +30,7 @@ function withinLimit(socket) {
 
 export function createSocketServer(httpServer) {
   const io = new Server(httpServer, {
-    cors: { origin: env.clientUrl },
+    cors: { origin: allowedOrigins },
     serveClient: false, // we don't need to serve the browser library from here
     maxHttpBufferSize: 100_000, // messages are tiny: refuse anything over 100 KB
   });
@@ -193,5 +194,9 @@ export function createSocketServer(httpServer) {
   });
 
   setIo(io);
+
+  // When the host asks the server to stop (a redeploy, or going to sleep), hang up politely.
+  registerShutdown({ io });
+
   return io;
 }
